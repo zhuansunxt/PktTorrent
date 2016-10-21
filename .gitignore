@@ -1,0 +1,11 @@
+.*
+!.gitignore
+
+*.o
+*.dSYM
+make-chunks
+peer
+test_debug
+test_input_buffer
+test_hashmap
+test_packet
