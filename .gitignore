@@ -8,3 +8,4 @@ peer
 test_*
 !test_*.h
 !test_*.c
+debug-text.h

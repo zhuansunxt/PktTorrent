@@ -8,9 +8,10 @@
 #include "packet.h"
 
 packet_t* pkt_new() {
-  packet_t* pkt = malloc(sizeof(packet_t));
+  packet_t* pkt = (packet_t*)malloc(sizeof(packet_t));
   pkt->hdr = (phdr_t*) pkt->raw;
   pkt->payload = pkt->raw + HDRSZ;
+  return pkt;
 }
 
 void pkt_free(packet_t* pkt) {
