@@ -1,6 +1,8 @@
 .*
 !.gitignore
 
+build
+
 *.o
 *.dSYM
 make-chunks
@@ -8,4 +10,3 @@ peer
 test_*
 !test_*.h
 !test_*.c
-debug-text.h

@@ -53,7 +53,7 @@ int main(int argc, char **argv) {
   toaddr.sin_family = AF_INET;
 
   packet.header.magicnum = htons(atoi(argv[4]));
-  memset(&(packet.data), 0, BUFLEN)
+  memset(&(packet.data), 0, BUFLEN);
 
   spiffy_sendto(fd, &packet, sizeof(data_packet_t), 0, (struct sockaddr *) &toaddr, sizeof(toaddr));
 

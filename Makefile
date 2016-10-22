@@ -1,26 +1,96 @@
 # Some variables
-CC 	        = gcc
-CFLAGS		= -g -Wall -DDEBUG
-LDFLAGS		= -lm
-TESTDEFS	= -DTESTING			# comment this out to disable debugging code
+CC 	        := gcc
+LD          := gcc
+CFLAGS		:= -g -Wall -DDEBUG
+LDFLAGS		:= -lm
+TESTDEFS	:= -DTESTING    # comment this out to disable debugging code
 
-OBJS	        = peer.o bt_parse.o spiffy.o debug.o \
-                  input_buffer.o chunk.o sha.o
-MK_CHUNK_OBJS   = make_chunks.o chunk.o sha.o
+MODULES := hashmap \
+	       network \
+		   packet  \
+		   utilities
+CFLAGS += $(foreach MODULE,$(MODULES),-I$(MODULE))
 
-BINS            = peer make-chunks
-TESTBINS        = test_debug test_input_buffer
-UTESTBINS       = test_hashmap test_packet
+BINS           := peer client server make_chunks
+TESTBINS       := test_debug test_input_buffer  # not automatic
+UTESTBINS      := test_hashmap test_packet
 
-# Implicit .o target
-.c.o:
-	$(CC) $(TESTDEFS) -c $(CFLAGS) $<
+BUILD     := build
+SRCS_DEP  := $(shell find $(MODULES) -name "*.c")
+OBJS_DEP  := $(patsubst %.c,$(BUILD)/%.o,$(SRCS_DEP))
 
-# Explit build and testing targets
+DEBUG   := debug
+SRC_DEBUG := $(DEBUG)/debug.c
+HDR_DEBUG := $(DEBUG)/debug.h
+HDR_DEBUG_TEXT := $(BUILD)/$(DEBUG)/debug-text.h
+OBJ_DEBUG := $(BUILD)/$(DEBUG)/debug.o
+OBJ_TEST_DEBUG := $(BUILD)/$(DEBUG)/test_debug.o
+CFLAGS += -I$(DEBUG) -I$(BUILD)/$(DEBUG)
 
-all: ${BINS} ${TESTBINS}
+TEST := utests
 
-.PHONY: run test utest peer clean
+SCRIPTS := scripts
+
+.PHONY: pre run test utest clean
+
+all: pre $(BINS) $(TESTBINS) $(UTESTBINS)
+
+pre:
+	mkdir -p $(BUILD)
+	$(foreach MODULE,$(MODULES),$(shell mkdir -p $(BUILD)/$(MODULE)))
+	mkdir -p $(BUILD)/$(DEBUG)
+	mkdir -p $(BUILD)/$(TEST)
+
+define gen_OBJ
+$$(BUILD)/$$(patsubst %c,%o,$(1)): $(1) $$(patsubst %c,%h,$(1))
+	@echo "$$@ : $$^"
+	$$(CC) $$< $$(CFLAGS) $$(TESTDEFS) -c -o $$@
+endef
+
+$(foreach SRC,$(SRCS_DEP),$(eval $(call gen_OBJ,$(SRC))))
+
+# Begin debugging utility code
+
+$(HDR_DEBUG_TEXT): $(HDR_DEBUG)
+	$(SCRIPTS)/debugparse.pl < $(HDR_DEBUG) \
+		> $(HDR_DEBUG_TEXT)
+
+$(OBJ_DEBUG): $(SRC_DEBUG) $(HDR_DEBUG) $(HDR_DEBUG_TEXT)
+	$(CC) $(CFLAGS) $< -c -o $@
+
+$(OBJ_TEST_DEBUG): $(SRC_DEBUG) $(HDR_DEBUG) $(HDR_DEBUG_TEXT)
+	$(CC) $(CFLAGS) $< -D_TEST_DEBUG_ -c -o $@
+
+test_debug: $(OBJ_TEST_DEBUG)
+	$(LD) $(LDFLAGS) $^ -o $@
+
+test_input_buffer.o: test_input_buffer.c
+	$(CC) $(CFLAGS) $< -c -o $@
+
+test_input_buffer: test_input_buffer.o $(OBJ_DEBUG) $(OBJS_DEP)
+	$(LD) $(LDFLAGS) $^ -o $@
+
+# End debug
+
+define gen_BIN
+$$(BUILD)/$(1).o: $(1).c
+	$$(CC) $$< $$(CFLAGS) -c -o $$@
+
+$(1): $$(BUILD)/$(1).o $$(OBJ_DEBUG) $$(OBJS_DEP)
+	$$(LD) $$^ $$(LDFLAGS) -o $$@
+endef
+
+$(foreach BIN,$(BINS),$(eval $(call gen_BIN,$(BIN))))
+
+define gen_UTESTBIN
+$$(BUILD)/$$(TEST)/$(1).o: $$(TEST)/$(1).c
+	$$(CC) $$< $$(CFLAGS) -c -o $$@
+
+$(1): $$(BUILD)/$$(TEST)/$(1).o $$(OBJ_DEBUG) $$(OBJS_DEP)
+	$$(LD) $$^ $$(LDFLAGS) -o $$@
+endef
+
+$(foreach UTESTBIN,$(UTESTBINS),$(eval $(call gen_UTESTBIN,$(UTESTBIN))))
 
 run: peer_run
 	./peer_run
@@ -28,29 +98,8 @@ run: peer_run
 test: peer_test
 	./peer_test
 
-utest: clean $(UTESTBINS)
+utest: pre $(UTESTBINS)
 	$(foreach bin,$(UTESTBINS),./$(bin);)
 
-peer: $(OBJS)
-	$(CC) $(CFLAGS) $(OBJS) -o $@ $(LDFLAGS)
-
-make-chunks: $(MK_CHUNK_OBJS)
-	$(CC) $(CFLAGS) $(MK_CHUNK_OBJS) -o $@ $(LDFLAGS)
-
 clean:
-	rm -f *.o $(BINS) $(TESTBINS) $(UTESTBINS)
-
-bt_parse.c: bt_parse.h
-
-# The debugging utility code
-
-debug-text.h: debug.h
-	./debugparse.pl < debug.h > debug-text.h
-
-test_debug.o: debug.c debug-text.h
-	${CC} debug.c ${INCLUDES} ${CFLAGS} -c -D_TEST_DEBUG_ -o $@
-
-test_input_buffer:  test_input_buffer.o input_buffer.o
-
-test_hashmap: test_hashmap.o hashmap.o
-
+	rm -rf *.o $(BUILD) $(BINS) $(TESTBINS) $(UTESTBINS)
