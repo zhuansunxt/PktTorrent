@@ -12,7 +12,7 @@
 #define MAX_CHAIN_LENGTH (8)
 
 /* We need to keep keys and values */
-typedef struct _hashmap_element{
+typedef struct _hashmap_element {
 	char* key;
 	int in_use;
 	any_t data;
@@ -20,7 +20,7 @@ typedef struct _hashmap_element{
 
 /* A hashmap has some maximum size and current size,
  * as well as the data to hold. */
-typedef struct _hashmap_map{
+typedef struct _hashmap_map {
 	int table_size;
 	int size;
 	hashmap_element *data;
@@ -323,7 +323,7 @@ int hashmap_get(map_t in, char* key, any_t *arg){
  * additional any_t argument is passed to the function as its first
  * argument and the hashmap element is the second.
  */
-int hashmap_iterate(map_t in, PFany f, any_t item) {
+int hashmap_iterate(map_t in, PFany f, any_t args) {
 	int i;
 
 	/* Cast the hashmap */
@@ -336,8 +336,9 @@ int hashmap_iterate(map_t in, PFany f, any_t item) {
 	/* Linear probing */
 	for(i = 0; i< m->table_size; i++)
 		if(m->data[i].in_use != 0) {
-			any_t data = (any_t) (m->data[i].data);
-			int status = f(item, data);
+      char* key = m->data[i].key;
+			any_t val = (any_t) (m->data[i].data);
+			int status = f(key, val, args);
 			if (status != MAP_OK) {
 				return status;
 			}
