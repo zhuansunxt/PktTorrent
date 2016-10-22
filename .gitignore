@@ -10,3 +10,10 @@ peer
 test_*
 !test_*.h
 !test_*.c
+*.tar
+util_files/*
+make_chunks
+server
+client
+example/*
+*.sh
