@@ -16,6 +16,8 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 
+#include "../hashmap/hashmap.h"
+
 #define BT_FILENAME_LEN 255
 #define BT_MAX_PEERS 1024
 
@@ -25,19 +27,31 @@ typedef struct bt_peer_s {
   struct bt_peer_s *next;
 } bt_peer_t;
 
+typedef struct bt_chunks_s {
+  char master_data_file[BT_FILENAME_LEN];
+  map_t has_chunk_map;
+} bt_chunks_t;
+
 struct bt_config_s {
+  /* Command-lind arguements */
+  int argc;
+  char **argv;
+  char  peer_list_file[BT_FILENAME_LEN];
   char  chunk_file[BT_FILENAME_LEN];
   char  has_chunk_file[BT_FILENAME_LEN];
-  char  output_file[BT_FILENAME_LEN];
-  char  peer_list_file[BT_FILENAME_LEN];
   int   max_conn;
   short identity;
+
+  /* Global peer info */
+  bt_peer_t *peers;
+
+  /* File chunks info */
+  bt_chunks_t *chunks;
+
+  /* Peer's own configuration infomations */
   unsigned short myport;
 
-  int argc; 
-  char **argv;
-
-  bt_peer_t *peers;
+  char  output_file[BT_FILENAME_LEN];
 };
 typedef struct bt_config_s bt_config_t;
 
@@ -45,7 +59,9 @@ typedef struct bt_config_s bt_config_t;
 void bt_init(bt_config_t *c, int argc, char **argv);
 void bt_parse_command_line(bt_config_t *c);
 void bt_parse_peer_list(bt_config_t *c);
+void bt_parse_chunks_info(bt_config_t *c);
 void bt_dump_config(bt_config_t *c);
+void bt_dump_chunkinfo(bt_config_t *c);
 bt_peer_t *bt_peer_info(const bt_config_t *c, int peer_id);
 
 #endif /* _BT_PARSE_H_ */

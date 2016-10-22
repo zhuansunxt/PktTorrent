@@ -20,6 +20,7 @@
 #include <arpa/inet.h>
 #include "bt_parse.h"
 #include "debug.h"
+#include "commons.h"
 
 static const char* const _bt_optstring = "p:c:f:m:i:d:h";
 
@@ -27,7 +28,6 @@ void bt_init(bt_config_t *config, int argc, char **argv) {
   bzero(config, sizeof(bt_config_t));
 
   strcpy(config->output_file, "output.dat");
-  strcpy(config->peer_list_file, "nodes.map");
   config->argc = argc;
   config->argv = argv;
 }
@@ -85,18 +85,23 @@ void bt_parse_command_line(bt_config_t *config) {
       }
       break;
     case 'p':
+      /* -p peer-list-file */
       strcpy(config->peer_list_file, optarg);
       break;
     case 'c':
+      /* has-chunk-file */
       strcpy(config->has_chunk_file, optarg);
       break;
     case 'f':
+      /* master-chunk-file */
       strcpy(config->chunk_file, optarg);
       break;
     case 'm':
+      /* max-connection */
       config->max_conn = atoi(optarg);
       break;
     case 'i':
+      /* identity */
       config->identity = atoi(optarg);
       break;
     default:
@@ -117,6 +122,10 @@ void bt_parse_command_line(bt_config_t *config) {
     exit(-1);
   }
   config->myport = ntohs(p->addr.sin_port);
+
+  /* Initialize hashtables */
+  bt_parse_chunks_info(config);
+
   assert(config->identity != 0);
   assert(strlen(config->chunk_file) != 0);
   assert(strlen(config->has_chunk_file) != 0);
@@ -154,6 +163,43 @@ void bt_parse_peer_list(bt_config_t *config) {
     node->next = config->peers;
     config->peers = node;
   }
+  fclose(f);
+}
+
+void bt_parse_chunks_info(bt_config_t *config) {
+  char *line = NULL;
+  int len;
+  FILE *m_chunk_f;
+  FILE *has_chunk_f;
+  char dummy[BT_FILENAME_LEN];
+  char m_data_file[BT_FILENAME_LEN];
+
+  config->chunks = (bt_chunks_t*)malloc(sizeof(bt_chunks_t));
+
+  /* Parse master data file */
+  m_chunk_f = fopen(config->chunk_file, "r");
+  assert(m_chunk_f != NULL);
+  assert(getline(&line, &len, m_chunk_f) != -1);
+  assert(sscanf(line, "%s %s", dummy, m_data_file) != 0);
+  strcpy(config->chunks->master_data_file, m_data_file);
+  fclose(m_chunk_f);
+
+  /* Parse has_chunk_file */
+  config->chunks->has_chunk_map = hashmap_new();
+  has_chunk_f = fopen(config->has_chunk_file, "r");
+  free(line);
+  assert(has_chunk_f != NULL);
+
+  line = NULL;
+  while(getline(&line, &len, has_chunk_f) != -1) {
+    if (line[0] == '#') continue;
+    char *hash_key = (char*)malloc(64);
+    int *chunk_id = (int*)malloc(sizeof(int));
+    assert(sscanf(line, "%d %s", &chunk_id, hash_key) != 0);
+    hashmap_put(config->chunks->has_chunk_map, hash_key, chunk_id);
+  }
+  free(line);
+  fclose(has_chunk_f);
 }
 
 void bt_dump_config(bt_config_t *config) {
@@ -161,13 +207,30 @@ void bt_dump_config(bt_config_t *config) {
   bt_peer_t *p;
   assert(config != NULL);
 
-  printf("15-441 PROJECT 2 PEER\n\n");
-  printf("chunk-file:     %s\n", config->chunk_file);
-  printf("has-chunk-file: %s\n", config->has_chunk_file);
-  printf("max-conn:       %d\n", config->max_conn);
-  printf("peer-identity:  %d\n", config->identity);
-  printf("peer-list-file: %s\n", config->peer_list_file);
+  console_log("**********PacTorrent Configuration Info**************");
+  console_log("peer-identity: %d", config->identity);
+  console_log("master-chunk-file: %s", config->chunk_file);
+  console_log("has-chunk-file: %s", config->has_chunk_file);
+  console_log("max-connection: %d", config->max_conn);
+  console_log("peer-list-file: %s", config->peer_list_file);
+  console_log("global-peer-info:");
+  for (p =config->peers; p; p = p->next) {
+    console_log("--- peer id: %d, <%s, %d>", p->id, inet_ntoa(p->addr.sin_addr), ntohs(p->addr.sin_port));
+  }
+  console_log("this peer's chunk-info");
+  console_log("--- master-data-file: %s", config->chunks->master_data_file);
+  console_log("*****************************************************");
+}
 
-  for (p = config->peers; p; p = p->next)
-    printf("  peer %d: %s:%d\n", p->id, inet_ntoa(p->addr.sin_addr), ntohs(p->addr.sin_port));
+
+int hash_map_iter(const char* key, int* val, map_t map) {
+  console_log("<%s, %d>", key, val);
+  return MAP_OK;
+}
+
+void bt_dump_chunkinfo(bt_config_t *config) {
+  assert(config != NULL);
+  console_log("**********Peer %d has-chunk Table***********", config->identity);
+  hashmap_iterate(config->chunks->has_chunk_map, hash_map_iter, NULL);
+  console_log("********************************************");
 }

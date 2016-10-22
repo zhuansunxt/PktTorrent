@@ -16,10 +16,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "debug.h"
-#include "spiffy.h"
-#include "bt_parse.h"
-#include "input_buffer.h"
+
+#include "utilities/commons.h"
+#include "utilities/spiffy.h"
+#include "utilities/bt_parse.h"
+#include "utilities/input_buffer.h"
 
 void peer_run(bt_config_t *config);
 
@@ -28,23 +29,14 @@ int main(int argc, char **argv) {
 
   bt_init(&config, argc, argv);
 
-  DPRINTF(DEBUG_INIT, "peer.c main beginning\n");
-
-#ifdef TESTING
-  config.identity = 1; // your group number here
-  strcpy(config.chunk_file, "chunkfile");
-  strcpy(config.has_chunk_file, "haschunks");
-#endif
-
   bt_parse_command_line(&config);
 
 #ifdef DEBUG
-  if (debug & DEBUG_INIT) {
     bt_dump_config(&config);
-  }
+    bt_dump_chunkinfo(&config);
 #endif
 
-  peer_run(&config);
+  //peer_run(&config);
   return 0;
 }
 
@@ -92,7 +84,7 @@ void peer_run(bt_config_t *config) {
 
   if ((userbuf = create_userbuf()) == NULL) {
     perror("peer_run could not allocate userbuf");
-    exit(-1);
+    exit(EXIT_FAILURE);
   }
 
   if ((sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_IP)) == -1) {
@@ -121,12 +113,11 @@ void peer_run(bt_config_t *config) {
 
     if (nfds > 0) {
       if (FD_ISSET(sock, &readfds)) {
-	process_inbound_udp(sock);
+	      process_inbound_udp(sock);
       }
 
       if (FD_ISSET(STDIN_FILENO, &readfds)) {
-	process_user_input(STDIN_FILENO, userbuf, handle_user_input,
-			   "Currently unused");
+	        process_user_input(STDIN_FILENO, userbuf, handle_user_input, "Currently unused");
       }
     }
   }

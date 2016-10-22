@@ -9,6 +9,7 @@
 #define PACKET_H
 
 #include <stdlib.h>
+#include <stdint.h>
 
 #define PKTSZ 1500
 

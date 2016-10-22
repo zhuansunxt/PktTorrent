@@ -1,11 +1,14 @@
 #include <assert.h>
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <sys/select.h>
 #include <string.h>
 #include <netinet/in.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <arpa/inet.h>
 
-#include "spiffy.h"
+#include "utilities/spiffy.h"
 
 #define PACKETLEN 1500
 #define BUFLEN 100
