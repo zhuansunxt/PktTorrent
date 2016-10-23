@@ -8,11 +8,12 @@ TESTDEFS	:= -DTESTING    # comment this out to disable debugging code
 MODULES := hashmap \
 	       network \
 		   packet  \
-		   utilities
+		   utilities \
+		   core
 CFLAGS += $(foreach MODULE,$(MODULES),-I$(MODULE))
 
 BINS           := peer client server make_chunks
-TESTBINS       := test_debug test_input_buffer  # not automatic
+#TESTBINS       := test_debug test_input_buffer  # not automatic
 UTESTBINS      := test_hashmap test_packet
 
 BUILD     := build
@@ -64,11 +65,11 @@ $(OBJ_TEST_DEBUG): $(SRC_DEBUG) $(HDR_DEBUG) $(HDR_DEBUG_TEXT)
 test_debug: $(OBJ_TEST_DEBUG)
 	$(LD) $(LDFLAGS) $^ -o $@
 
-test_input_buffer.o: test_input_buffer.c
-	$(CC) $(CFLAGS) $< -c -o $@
+#test_input_buffer.o: test_input_buffer.c
+#	$(CC) $(CFLAGS) $< -c -o $@
 
-test_input_buffer: test_input_buffer.o $(OBJ_DEBUG) $(OBJS_DEP)
-	$(LD) $(LDFLAGS) $^ -o $@
+#test_input_buffer: test_input_buffer.o $(OBJ_DEBUG) $(OBJS_DEP)
+#	$(LD) $(LDFLAGS) $^ -o $@
 
 # End debug
 

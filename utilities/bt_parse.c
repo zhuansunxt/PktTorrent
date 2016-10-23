@@ -224,13 +224,12 @@ void bt_dump_config(bt_config_t *config) {
 
 
 int hash_map_iter(const char* key, int* val, map_t map) {
-  console_log("<%s, %d>", key, val);
+  console_log("--- <%s, %d>", key, val);
   return MAP_OK;
 }
 
 void bt_dump_chunkinfo(bt_config_t *config) {
   assert(config != NULL);
-  console_log("**********Peer %d has-chunk Table***********", config->identity);
+  console_log("Peer %d has-chunk Table", config->identity);
   hashmap_iterate(config->chunks->has_chunk_map, hash_map_iter, NULL);
-  console_log("********************************************");
 }

@@ -13,6 +13,8 @@
 #include <errno.h>
 
 #define DEBUG 1
+#define FILE_NAME_LEN 256
+#define HASH_STR_LEN 64
 
 void console_log(const char *fmt, ...);
 

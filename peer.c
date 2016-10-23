@@ -21,22 +21,30 @@
 #include "utilities/spiffy.h"
 #include "utilities/bt_parse.h"
 #include "utilities/input_buffer.h"
+#include "core/user_handler.h"
+#include "core/session.h"
 
-void peer_run(bt_config_t *config);
+void peer_run(g_state_t *g_state);
 
 int main(int argc, char **argv) {
+  g_state_t g_state;
   bt_config_t config;
+  session_t session;
 
   bt_init(&config, argc, argv);
+  session_init(&session);
 
   bt_parse_command_line(&config);
 
 #ifdef DEBUG
-    bt_dump_config(&config);
-    bt_dump_chunkinfo(&config);
+    //bt_dump_config(&config);
+    //bt_dump_chunkinfo(&config);
 #endif
 
-  //peer_run(&config);
+  g_state.g_config = &config;
+  g_state.g_session = &session;
+
+  peer_run(&g_state);
   return 0;
 }
 
@@ -57,26 +65,27 @@ void process_inbound_udp(int sock) {
 	 buf);
 }
 
-void process_get(char *chunkfile, char *outputfile) {
-  printf("PROCESS GET SKELETON CODE CALLED.  Fill me in!  (%s, %s)\n",
-	chunkfile, outputfile);
-}
-
-void handle_user_input(char *line, void *cbdata) {
-  char chunkf[128], outf[128];
+void handle_user_input(char *line, void *cbdata, g_state_t *g) {
+  char method[128], chunkf[128], outf[128];
 
   bzero(chunkf, sizeof(chunkf));
   bzero(outf, sizeof(outf));
 
-  if (sscanf(line, "GET %120s %120s", chunkf, outf)) {
+  if (sscanf(line, "%120s %120s %120s", method, chunkf, outf)) {
+
+    if (strcmp(method, "GET")) {
+      fprintf(stderr, "Invalid method. Method should be GET\n");
+      return;
+    }
+
     if (strlen(outf) > 0) {
-      process_get(chunkf, outf);
+      process_get(chunkf, outf, g);
     }
   }
 }
 
 
-void peer_run(bt_config_t *config) {
+void peer_run(g_state_t * g_state) {
   int sock;
   struct sockaddr_in myaddr;
   fd_set readfds;
@@ -95,14 +104,14 @@ void peer_run(bt_config_t *config) {
   bzero(&myaddr, sizeof(myaddr));
   myaddr.sin_family = AF_INET;
   myaddr.sin_addr.s_addr = htonl(INADDR_ANY);
-  myaddr.sin_port = htons(config->myport);
+  myaddr.sin_port = htons(g_state->g_config->myport);
 
   if (bind(sock, (struct sockaddr *) &myaddr, sizeof(myaddr)) == -1) {
     perror("peer_run could not bind socket");
     exit(-1);
   }
 
-  spiffy_init(config->identity, (struct sockaddr *)&myaddr, sizeof(myaddr));
+  spiffy_init(g_state->g_config->identity, (struct sockaddr *)&myaddr, sizeof(myaddr));
 
   while (1) {
     int nfds;
@@ -112,12 +121,25 @@ void peer_run(bt_config_t *config) {
     nfds = select(sock+1, &readfds, NULL, NULL, NULL);
 
     if (nfds > 0) {
-      if (FD_ISSET(sock, &readfds)) {
-	      process_inbound_udp(sock);
-      }
+//      if (FD_ISSET(sock, &readfds)) {
+//	      process_inbound_udp(sock);
+//      }
 
       if (FD_ISSET(STDIN_FILENO, &readfds)) {
-	        process_user_input(STDIN_FILENO, userbuf, handle_user_input, "Currently unused");
+        process_user_input(STDIN_FILENO, userbuf, handle_user_input, "Currently unused", g_state);
+        if (g_state->g_session->state == AWAITING_WHOHAS) {
+#ifdef DEBUG
+          console_log("Below chunks are missing locally:");
+          session_nlchunk_t *p;
+          for (p = g_state->g_session->non_local_chunks; p; p = p->next)
+            console_log("Non-local-chunk: %s", p->chunk_hash);
+#endif
+        } else {
+#ifdef DEBUG
+          console_log("All chunks are accessible locally");
+#endif
+        }
+
       }
     }
   }

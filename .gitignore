@@ -1,4 +1,5 @@
 .*
+user_file/*
 !.gitignore
 
 build
