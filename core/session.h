@@ -1,6 +1,9 @@
-//
-// Created by XiaotongSun on 16/10/22.
-//
+/**
+ * @file session.h
+ * @brief user_session as global states.
+ * @author Xiaotong Sun <xiaotons@andrew.cmu.edu>
+ * @author Longqi Cai   <longqic@andrew.cmu.edu>
+ */
 
 #ifndef PACTORRENT_SESSION_H
 #define PACTORRENT_SESSION_H
@@ -20,17 +23,19 @@ typedef enum session_state_enum{
 
 typedef struct session_nlchunks_s {
   char chunk_hash[HASH_STR_LEN];
-  struct session_non_local_chunks_s *next;
+  struct session_nlchunks_s *next;
 } session_nlchunk_t;
 
 typedef struct session_s {
   session_state_t state;
-  map_t chunk_map;
+  map_t chunk_map;    /* user_requeste_chunk -> chunk_id */
+  map_t nlchunk_map;  /* non_local_chunk -> peer_id */
   char output_file[FILE_NAME_LEN];
-  session_nlchunk_t *non_local_chunks;
+  session_nlchunk_t *non_local_chunks;  /* list of non_local_chunks */
 } session_t;
 
 typedef struct g_state_s {
+  int peer_socket;
   bt_config_t *g_config;
   session_t *g_session;
 } g_state_t;

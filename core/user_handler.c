@@ -1,6 +1,9 @@
-//
-// Created by XiaotongSun on 16/10/22.
-//
+/**
+ * @file user_handler.c
+ * @brief implementation for user input handler.
+ * @author Xiaotong Sun <xiaotons@andrew.cmu.edu>
+ * @author Longqi Cai   <longqic@andrew.cmu.edu>
+ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -11,7 +14,7 @@
 void process_get(char *chunkfile, char *outputfile, g_state_t *g){
   FILE *get_chunk_f = NULL;
   char *line = NULL;
-  int len;
+  size_t len;
 
   strcpy(g->g_session->output_file, outputfile);
 
@@ -29,7 +32,7 @@ void process_get(char *chunkfile, char *outputfile, g_state_t *g){
     hashmap_put(g->g_session->chunk_map, key, value);
     char *chunk_hash;
     if (hashmap_get(g->g_config->chunks->has_chunk_map,
-                    value, (any_t*)chunk_hash) == MAP_MISSING) {
+                    value, (any_t*)&chunk_hash) == MAP_MISSING) {
       g->g_session->state = AWAITING_WHOHAS;
       session_nlchunk_t *nlchunk = (session_nlchunk_t*)malloc(sizeof(session_nlchunk_t));
       assert(nlchunk != NULL);
@@ -40,9 +43,8 @@ void process_get(char *chunkfile, char *outputfile, g_state_t *g){
   }
   free(line);
   fclose(get_chunk_f);
-  console_log("2");
 
-#ifdef DEBUG
+#ifdef DEBUG_
   bt_dump_config(g->g_config);
   bt_dump_chunkinfo(g->g_config);
   dump_session(g->g_session);

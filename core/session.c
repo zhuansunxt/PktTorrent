@@ -1,12 +1,16 @@
-//
-// Created by XiaotongSun on 16/10/22.
-//
+/**
+ * @file session.c
+ * @brief implementation for user session.
+ * @author Xiaotong Sun <xiaotons@andrew.cmu.edu>
+ * @author Longqi Cai   <longqic@andrew.cmu.edu>
+ */
 
 #include "session.h"
 
 void session_init(session_t *s) {
   s->state = NONE;
   s->chunk_map = hashmap_new();
+  s->nlchunk_map = hashmap_new();
   bzero(s->output_file, FILE_NAME_LEN);
   s->non_local_chunks = NULL;
 }

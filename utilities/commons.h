@@ -11,10 +11,15 @@
 #include <stdio.h>
 #include <stdarg.h>
 #include <errno.h>
+#include <assert.h>
+#include <string.h>
+#include <stdlib.h>
 
 #define DEBUG 1
 #define FILE_NAME_LEN 256
 #define HASH_STR_LEN 64
+#define PACKET_LEN 1500
+#define PACKET_TYPE_OFFSET 3
 
 void console_log(const char *fmt, ...);
 

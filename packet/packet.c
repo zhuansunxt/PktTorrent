@@ -11,6 +11,7 @@ packet_t* pkt_new() {
   packet_t* pkt = (packet_t*)malloc(sizeof(packet_t));
   pkt->hdr = (phdr_t*) pkt->raw;
   pkt->payload = pkt->raw + HDRSZ;
+  bzero(pkt->raw, PKTSZ);
   return pkt;
 }
 
