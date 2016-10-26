@@ -217,8 +217,8 @@ void bt_dump_config(bt_config_t *config) {
   for (p =config->peers; p; p = p->next) {
     console_log("--- peer id: %d, <%s, %d>", p->id, inet_ntoa(p->addr.sin_addr), ntohs(p->addr.sin_port));
   }
-  console_log("this peer's chunk-info");
-  console_log("--- master-data-file: %s", config->chunks->master_data_file);
+  console_log("this peer's chunk-info:");
+  bt_dump_chunkinfo(config);
   console_log("*****************************************************");
 }
 
@@ -230,6 +230,6 @@ int hash_map_iter(const char* key, int* val, map_t map) {
 
 void bt_dump_chunkinfo(bt_config_t *config) {
   assert(config != NULL);
-  console_log("Peer %d has-chunk Table", config->identity);
+  console_log("--- master-data-file: %s", config->chunks->master_data_file);
   hashmap_iterate(config->chunks->has_chunk_map, hash_map_iter, NULL);
 }

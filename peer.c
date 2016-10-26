@@ -33,24 +33,21 @@ int main(int argc, char **argv) {
   bt_config_t config;
   session_t session;
 
+  /* Init global states, shared by all component */
   bt_init(&config, argc, argv);
   session_init(&session);
-
   bt_parse_command_line(&config);
-
-#ifdef DEBUG
-    //bt_dump_config(&config);
-    //bt_dump_chunkinfo(&config);
-#endif
 
   g_state.g_config = &config;
   g_state.g_session = &session;
+
+  bt_dump_config(g_state.g_config);
 
   peer_run(&g_state);
   return 0;
 }
 
-
+/* Entrance for all peer request */
 void process_inbound_udp(g_state_t *g_state) {
   struct sockaddr_in from;
   socklen_t fromlen;
@@ -59,10 +56,12 @@ void process_inbound_udp(g_state_t *g_state) {
   fromlen = sizeof(from);
   spiffy_recvfrom(g_state->peer_socket, buf, PACKET_LEN, 0, (struct sockaddr *) &from, &fromlen);
 
+#ifdef DEBUG
   console_log("Peer %d: Incoming message from %s:%d",
-               g_state->g_config->identity,
-               inet_ntoa(from.sin_addr),
-               ntohs(from.sin_port));
+              g_state->g_config->identity,
+              inet_ntoa(from.sin_addr),
+              ntohs(from.sin_port));
+#endif
 
   short id;
   bt_peer_t *p;
@@ -82,6 +81,7 @@ void process_inbound_udp(g_state_t *g_state) {
   process_packet(g_state, buf, id);
 }
 
+/* Entrance for all user request */
 void handle_user_input(char *line, void *cbdata, g_state_t *g) {
   char method[128], chunkf[128], outf[128];
 
@@ -89,18 +89,18 @@ void handle_user_input(char *line, void *cbdata, g_state_t *g) {
   bzero(outf, sizeof(outf));
 
   if (sscanf(line, "%120s %120s %120s", method, chunkf, outf)) {
-
     if (strcmp(method, "GET")) {
       fprintf(stderr, "Invalid method. Method should be GET\n");
       return;
     }
 
-    if (strlen(outf) > 0) {
+    if (strlen(outf) > 0 && strlen(chunkf) > 0) {
       process_get(chunkf, outf, g);
+    } else {
+      fprintf(stderr, "Chunk or output file must be specified");
     }
   }
 }
-
 
 void peer_run(g_state_t * g_state) {
   int sock;
@@ -115,7 +115,7 @@ void peer_run(g_state_t * g_state) {
 
   if ((sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_IP)) == -1) {
     perror("peer_run could not create socket");
-    exit(-1);
+    exit(EXIT_FAILURE);
   }
 
   bzero(&myaddr, sizeof(myaddr));
@@ -156,6 +156,7 @@ void peer_run(g_state_t * g_state) {
           assert(g_state->g_session->state == AWAITING_IHAVE);
         } else {
 #ifdef DEBUG
+          /* TODO (longqic): retrieve chunks, conbine them and write to <output_file> */
           console_log("All chunks are accessible locally");
 #endif
         }

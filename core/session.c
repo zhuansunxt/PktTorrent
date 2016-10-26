@@ -15,14 +15,15 @@ void session_init(session_t *s) {
   s->non_local_chunks = NULL;
 }
 
+/* Iterator to tranverse and print hashmap content */
 int chunk_map_iter(const char* key, char* val, map_t map) {
-  console_log("--- <%s, %s>", key, val);
+  console_log(" ---- <%s, %s>", key, val);
   return MAP_OK;
 }
 
 void dump_session(session_t *s) {
-  console_log("**********PacTorrent Current Session Info***********");
-  console_log("output-file-name: %s", s->output_file);
-  console_log("chunk-requested:");
+  console_log("[Peer's Current Session Info]");
+  console_log(" -- output-file-name: %s", s->output_file);
+  console_log(" -- chunk-requested:");
   hashmap_iterate(s->chunk_map, chunk_map_iter, NULL);
 }
