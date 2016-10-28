@@ -32,6 +32,7 @@ packet_t *build_get_packet(const char *chunk_hash) {
 
 /**
  * Send GET packet to designated peer.
+ * The invoker of this function is the receiver in downloading process.
  * @param id designated peer's id.
  * @param get_packet GET packet
  * @param g global state to retrieve socket and peers info
@@ -46,6 +47,7 @@ void send_get_packet(short id, packet_t *get_packet, g_state_t *g){
 
 /**
  * Process incoming GET packet from peer.
+ * The invoker of this function is the sender in downloading process.
  * @param g current global state.
  * @param get_packet GET packet.
  * @param from peer id.

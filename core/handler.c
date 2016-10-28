@@ -47,4 +47,6 @@ void process_packet(g_state_t *g, char *buf, short id) {
       fprintf(stderr, "Peer %d: Unknown type of packet. Drop it", g->g_config->identity);
       return;
   }
+
+  pkt_free(packet);
 }

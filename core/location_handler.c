@@ -110,7 +110,6 @@ void process_who_has_packet(g_state_t *g, packet_t* wh_packet, short id) {
   }
 
   if (ihave_chunk_cnt == 0) {
-    pkt_free(ihave_packet);
     return ;
   }
 
@@ -122,7 +121,6 @@ void process_who_has_packet(g_state_t *g, packet_t* wh_packet, short id) {
   bt_peer_t *p = bt_peer_info(g->g_config, id);
   spiffy_sendto(g->peer_socket, ihave_packet->raw, ntohs(ihave_packet->hdr->plen),
                 0, (struct sockaddr *)&(p->addr), sizeof(p->addr));
-  pkt_free(ihave_packet);
 }
 
 void process_ihave_packet(g_state_t *g, packet_t* ih_packet, short id) {
