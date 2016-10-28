@@ -41,6 +41,7 @@ int main(int argc, char** argv) {
 
   /* test queue_free */
   queue_free(q);
+  free(i1);
 
   printf("%s succeeds!\n", argv[0]);
   return 0;
