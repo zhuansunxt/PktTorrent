@@ -10,7 +10,7 @@
 
 #include "../utilities/commons.h"
 #include "../packet/packet.h"
-#include "session.h"
+#include "global.h"
 #include "download_handler.h"
 #include "../utilities/spiffy.h"
 #include "../utilities/chunk.h"

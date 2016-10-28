@@ -22,7 +22,7 @@
 #include "utilities/bt_parse.h"
 #include "utilities/input_buffer.h"
 #include "core/user_handler.h"
-#include "core/session.h"
+#include "core/global.h"
 #include "core/location_handler.h"
 #include "core/handler.h"
 

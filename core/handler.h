@@ -5,7 +5,7 @@
 #ifndef PACTORRENT_HANDLER_H
 #define PACTORRENT_HANDLER_H
 
-#include "session.h"
+#include "global.h"
 
 void process_packet(g_state_t *g, char *buf, short id);
 

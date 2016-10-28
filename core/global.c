@@ -5,7 +5,7 @@
  * @author Longqi Cai   <longqic@andrew.cmu.edu>
  */
 
-#include "session.h"
+#include "global.h"
 
 void session_init(session_t *s) {
   s->state = NONE;
