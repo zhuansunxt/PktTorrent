@@ -147,6 +147,12 @@ void process_ihave_packet(g_state_t *g, packet_t* ih_packet, short id) {
 
     console_log("Peer %d: Peer %d has chunk %s",
                 g->g_config->identity, id, chunk_hash);
+
+    /* Send GET packet to corresponding peer */
+    packet_t *GET_packet = build_get_packet(chunk_hash);
+    send_get_packet(id, GET_packet, g);
+
+    console_log("Sent GET packet to peer %d", id);
   }
 
   g->g_session->state = AWAITING_GET;

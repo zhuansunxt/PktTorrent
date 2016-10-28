@@ -18,3 +18,29 @@ packet_t* pkt_new() {
 void pkt_free(packet_t* pkt) {
   free(pkt);
 }
+
+void print_packet(packet_t *pkt) {
+  console_log("Packet Layout");
+  console_log("- Header");
+  console_log("--- Magic-number: %u", (uint16_t)ntohs(pkt->hdr->magic));
+  console_log("--- Version-number: %u", pkt->hdr->version);
+  console_log("--- Type: %u", pkt->hdr->type);
+  console_log("--- Header-Len: %u", (uint16_t)ntohs(pkt->hdr->hlen));
+  console_log("--- Packert-Len: %u", (uint16_t)ntohs(pkt->hdr->plen));
+  console_log("--- SEQ-number: %u", (uint32_t)ntohl(pkt->hdr->seqn));
+  console_log("--- ACK-number: %u", (uint32_t)ntohl(pkt->hdr->ackn));
+  console_log("- Payload");
+
+  uint8_t type = pkt->hdr->type;
+  /* TODO: further print the payload of packet for debugging. */
+  switch (type) {
+    case 0: // WHOHAS.
+      break;
+    case 1: // IHAVE.
+      break;
+    case 2: // GET.
+      break;
+    default:
+      console_log("[Error] Invalid packet type");
+  }
+}

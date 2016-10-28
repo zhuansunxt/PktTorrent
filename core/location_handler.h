@@ -11,6 +11,7 @@
 #include "../utilities/commons.h"
 #include "../packet/packet.h"
 #include "session.h"
+#include "download_handler.h"
 
 void ask_peers_who_has(g_state_t *g);
 void broadcast_who_has_packets(g_state_t *g, packet_t* wh_packet);

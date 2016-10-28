@@ -31,17 +31,13 @@ void peer_run(g_state_t *g_state);
 int main(int argc, char **argv) {
   g_state_t g_state;
   bt_config_t config;
-  session_t session;
 
-  /* Init global states, shared by all component */
+  /* Configuration info initialization. */
   bt_init(&config, argc, argv);
-  session_init(&session);
   bt_parse_command_line(&config);
-
   g_state.g_config = &config;
-  g_state.g_session = &session;
 
-  bt_dump_config(g_state.g_config);
+  g_state.g_session = NULL;
 
   peer_run(&g_state);
   return 0;
@@ -139,30 +135,27 @@ void peer_run(g_state_t * g_state) {
     nfds = select(sock+1, &readfds, NULL, NULL, NULL);
 
     if (nfds > 0) {
+
+      /* Packet from other peers */
       if (FD_ISSET(sock, &readfds)) {
 	      process_inbound_udp(g_state);
       }
 
+      /* Request from the user */
       if (FD_ISSET(STDIN_FILENO, &readfds)) {
+        /* Init a session for the user */
+        session_t session;
+        session_init(&session);
+        g_state->g_session = &session;
+
         process_user_input(STDIN_FILENO, userbuf, handle_user_input, "Currently unused", g_state);
         if (g_state->g_session->state == AWAITING_WHOHAS) {
-#ifdef DEBUG
-          console_log("Below chunks are missing locally:");
-          session_nlchunk_t *p;
-          for (p = g_state->g_session->non_local_chunks; p; p = p->next)
-            console_log("Non-local-chunk: %s", p->chunk_hash);
-#endif
           ask_peers_who_has(g_state);
-          assert(g_state->g_session->state == AWAITING_IHAVE);
         } else {
-#ifdef DEBUG
-          /* TODO (longqic): retrieve chunks, conbine them and write to <output_file> */
           console_log("All chunks are accessible locally");
-#endif
         }
-
       }
-    }
 
+    } // End if (nfds > 0).
   } // End while loop.
 } // End peer_run function

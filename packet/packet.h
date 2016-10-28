@@ -30,5 +30,6 @@ typedef struct packet_s {
 
 packet_t* pkt_new();
 void pkt_free(packet_t* pkt);
+void print_packet(packet_t* pkt);
 
 #endif // PACKET_H
