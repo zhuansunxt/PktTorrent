@@ -10,24 +10,47 @@
 /**
  * GET packet contains only the chunk hash for the chunk
  * the client wants to fetch.
- * @param chunk_hash  hash_value for chunk to be fetched.
+ * @param chunk_hash  string of hash_value of chunk.
  * @return built GET packet.
  */
 packet_t *build_get_packet(const char *chunk_hash) {
   packet_t *get_packet = pkt_new();
-  get_packet->hdr->magic = (uint16_t)htons(15441);
+  get_packet->hdr->magic = htons(15441);
   get_packet->hdr->version = 1;
   get_packet->hdr->type = 2;
-  get_packet->hdr->hlen = (uint16_t)htons(HDRSZ);
-  get_packet->hdr->plen = (uint16_t)htons(HDRSZ+SHA1_HASH_SIZE);
-  get_packet->hdr->seqn = (uint32_t)htonl(0);
-  get_packet->hdr->ackn = (uint32_t)htonl(0);
+  get_packet->hdr->hlen = htons(HDRSZ);
+  get_packet->hdr->plen = htons(HDRSZ+SHA1_HASH_SIZE);
+  get_packet->hdr->seqn = htonl(0);
+  get_packet->hdr->ackn = htonl(0);
 
   /* Copy chunk hash to packet. */
   char hash_hex[SHA1_HASH_SIZE];
   ascii2hex(chunk_hash, SHA1_HASH_SIZE*2, (uint8_t*)hash_hex);
   memcpy(get_packet->payload, hash_hex, SHA1_HASH_SIZE);
   return get_packet;
+}
+
+/**
+ * Construct DATA packet.
+ * @param seq seqeunce number.
+ * @param data_size size of attached data.
+ * @param data pointer to attached data.
+ * @return built DATA packet.
+ */
+packet_t *build_data_packet(unsigned int seq, size_t data_size, char *data) {
+  packet_t *data_packet;
+  uint16_t packet_len = HDRSZ + (uint16_t)data_size;
+
+  data_packet->hdr->magic = htons(15441);
+  data_packet->hdr->version = 1;
+  data_packet->hdr->type = 3;                       // packet type: DATA
+  data_packet->hdr->hlen = htons(HDRSZ);
+  data_packet->hdr->plen = htons(packet_len);
+  data_packet->hdr->seqn = htonl((uint32_t)seq);
+  data_packet->hdr->ackn = htonl(0);
+
+  memcpy(data_packet->payload, data, data_size);
+  return data_packet;
 }
 
 /**
@@ -38,11 +61,10 @@ packet_t *build_get_packet(const char *chunk_hash) {
  * @param g global state to retrieve socket and peers info
  */
 //TODO: set timeout for GET packet.
-void send_get_packet(short id, packet_t *get_packet, g_state_t *g){
+void send_packet(short id, packet_t *get_packet, g_state_t *g){
   bt_peer_t *peer = bt_peer_info(g->g_config, id);
   spiffy_sendto(g->peer_socket, get_packet->raw, ntohs(get_packet->hdr->plen),
                 0, (struct sockaddr *)&(peer->addr), sizeof(peer->addr));
-  pkt_free(get_packet);
 }
 
 /**

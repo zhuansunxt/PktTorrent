@@ -52,13 +52,6 @@ void process_inbound_udp(g_state_t *g_state) {
   fromlen = sizeof(from);
   spiffy_recvfrom(g_state->peer_socket, buf, PACKET_LEN, 0, (struct sockaddr *) &from, &fromlen);
 
-#ifdef DEBUG
-  console_log("Peer %d: Incoming message from %s:%d",
-              g_state->g_config->identity,
-              inet_ntoa(from.sin_addr),
-              ntohs(from.sin_port));
-#endif
-
   short id;
   bt_peer_t *p;
   for (p = g_state->g_config->peers; p; p = p->next) {
@@ -73,6 +66,11 @@ void process_inbound_udp(g_state_t *g_state) {
     fprintf(stderr, "Peer %d: Receive data from unknown peer. Drop it.", g_state->g_config->identity);
     return;
   }
+
+#ifdef DEBUG
+  console_log("Peer %d: Incoming message from %d",
+              g_state->g_config->identity, id);
+#endif
 
   process_packet(g_state, buf, id);
 }

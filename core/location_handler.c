@@ -124,7 +124,6 @@ void process_who_has_packet(g_state_t *g, packet_t* wh_packet, short id) {
 }
 
 void process_ihave_packet(g_state_t *g, packet_t* ih_packet, short id) {
-  /* TODO: further check whether the chunks in the packet are indeed non-local */
   uint8_t num_of_chunks;
   memcpy(&num_of_chunks, ih_packet->payload, sizeof(uint8_t));
 
@@ -148,8 +147,8 @@ void process_ihave_packet(g_state_t *g, packet_t* ih_packet, short id) {
 
     /* Send GET packet to corresponding peer */
     packet_t *GET_packet = build_get_packet(chunk_hash);
-    send_get_packet(id, GET_packet, g);
-
+    send_packet(id, GET_packet, g);
+    pkt_free(GET_packet);
     console_log("Sent GET packet to peer %d", id);
   }
 

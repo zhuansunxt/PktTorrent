@@ -16,8 +16,11 @@
 #include "../utilities/chunk.h"
 #include "../utilities/sha.h"
 
+/* Packet builder */
 packet_t *build_get_packet(const char *chunk_hash);
-void send_get_packet(short id, packet_t *get_packet, g_state_t *g);
+packet_t *build_data_packet(unsigned int seq, size_t data_size, char *data);
+
+void send_packet(short id, packet_t *get_packet, g_state_t *g);
 void process_get_packet(g_state_t *g, packet_t *get_packet, short from);
 
 #endif //PACTORRENT_DOWNLOAD_HANDLER_H
