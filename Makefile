@@ -10,6 +10,7 @@ MODULES := lib      \
 		   packet   \
 		   utilities \
 		   core
+CFLAGS += -I.
 CFLAGS += $(foreach MODULE,$(MODULES),-I$(MODULE))
 
 BINS           := peer client server make_chunks

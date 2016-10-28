@@ -8,7 +8,7 @@
 #ifndef IO_H
 #define IO_H
 
-#include "core/session.h"
+#include "core/global.h"
 
 /**
  * @brief assemble chunks requested in the current session.
