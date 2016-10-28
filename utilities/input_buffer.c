@@ -2,7 +2,7 @@
 #include <string.h>
 #include <assert.h>
 #include "input_buffer.h"
-#include "../core/session.h"
+#include "../core/global.h"
 
 struct user_iobuf *create_userbuf() {
   struct user_iobuf *b;

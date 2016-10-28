@@ -16,36 +16,38 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 
-#include "../hashmap/hashmap.h"
+#include "hashmap.h"
 
 #define BT_FILENAME_LEN 255
 #define BT_MAX_PEERS 1024
 
+/* Linked-list storing peers' info */
 typedef struct bt_peer_s {
   short  id;
   struct sockaddr_in addr;
   struct bt_peer_s *next;
 } bt_peer_t;
 
+/* In-memory has-chunk-file */
 typedef struct bt_chunks_s {
-  char master_data_file[BT_FILENAME_LEN];
-  map_t has_chunk_map;
+  char master_data_file[BT_FILENAME_LEN];   // master-data-file path.
+  map_t has_chunk_map;                      // chunk --> id.
 } bt_chunks_t;
 
 struct bt_config_s {
   /* Command-lind arguements */
   int argc;
   char **argv;
-  char  peer_list_file[BT_FILENAME_LEN];
-  char  chunk_file[BT_FILENAME_LEN];
-  char  has_chunk_file[BT_FILENAME_LEN];
-  int   max_conn;
+  char  peer_list_file[BT_FILENAME_LEN];    // global peer info file path.
+  char  chunk_file[BT_FILENAME_LEN];        // master-chunk-file path.
+  char  has_chunk_file[BT_FILENAME_LEN];    // peer's has-chunk-file path.
+  int   max_conn;                           // maximum connection.
   short identity;
 
   /* Global peer info */
   bt_peer_t *peers;
 
-  /* File chunks info */
+  /* Has-chunk-file info */
   bt_chunks_t *chunks;
 
   /* Peer's own configuration infomations */

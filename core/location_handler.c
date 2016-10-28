@@ -110,7 +110,6 @@ void process_who_has_packet(g_state_t *g, packet_t* wh_packet, short id) {
   }
 
   if (ihave_chunk_cnt == 0) {
-    pkt_free(ihave_packet);
     return ;
   }
 
@@ -122,11 +121,9 @@ void process_who_has_packet(g_state_t *g, packet_t* wh_packet, short id) {
   bt_peer_t *p = bt_peer_info(g->g_config, id);
   spiffy_sendto(g->peer_socket, ihave_packet->raw, ntohs(ihave_packet->hdr->plen),
                 0, (struct sockaddr *)&(p->addr), sizeof(p->addr));
-  pkt_free(ihave_packet);
 }
 
 void process_ihave_packet(g_state_t *g, packet_t* ih_packet, short id) {
-  /* TODO: further check whether the chunks in the packet are indeed non-local */
   uint8_t num_of_chunks;
   memcpy(&num_of_chunks, ih_packet->payload, sizeof(uint8_t));
 
@@ -147,6 +144,12 @@ void process_ihave_packet(g_state_t *g, packet_t* ih_packet, short id) {
 
     console_log("Peer %d: Peer %d has chunk %s",
                 g->g_config->identity, id, chunk_hash);
+
+    /* Send GET packet to corresponding peer */
+    packet_t *GET_packet = build_get_packet(chunk_hash);
+    send_packet(id, GET_packet, g);
+    pkt_free(GET_packet);
+    console_log("Sent GET packet to peer %d", id);
   }
 
   g->g_session->state = AWAITING_GET;

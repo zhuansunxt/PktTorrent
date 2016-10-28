@@ -7,23 +7,18 @@
 #include "../utilities/commons.h"
 #include "../packet/packet.h"
 
+/**
+ * Process incoming packet from peers.
+ * @param g current global state.
+ * @param buf incoming data buffer.
+ * @param id incoming peer id.
+ */
 void process_packet(g_state_t *g, char *buf, short id) {
 
   packet_t *packet = pkt_new();
   memcpy(packet->raw, buf, HDRSZ);
   uint8_t type = packet->hdr->type;
-
-#ifdef DEBUG
-  console_log("*******Receiving Packet*********");
-  console_log("packet magic number: %u", (uint16_t)ntohs(packet->hdr->magic));
-  console_log("packet version number: %u", packet->hdr->version);
-  console_log("packet type : %u", type);
-  console_log("packet header length: %u", (uint16_t)ntohs(packet->hdr->hlen));
-  console_log("packet packet length: %u", (uint16_t)ntohs(packet->hdr->plen));
-  console_log("packet seq number: %u", (uint32_t)ntohl(packet->hdr->seqn));
-  console_log("packet ack number: %u", (uint32_t)ntohl(packet->hdr->ackn));
-#endif
-
+  
   memcpy(packet->payload, buf+HDRSZ, ntohs(packet->hdr->plen)-HDRSZ);
 
   switch (type) {
@@ -37,6 +32,7 @@ void process_packet(g_state_t *g, char *buf, short id) {
       break;
     case 2:
       console_log("Peer %d: Receiving  GET packet", g->g_config->identity);
+      process_get_packet(g, packet, id);
       break;
     case 3:
       console_log("Peer %d: Receiving DATA packet", g->g_config->identity);
@@ -51,4 +47,6 @@ void process_packet(g_state_t *g, char *buf, short id) {
       fprintf(stderr, "Peer %d: Unknown type of packet. Drop it", g->g_config->identity);
       return;
   }
+
+  pkt_free(packet);
 }

@@ -1,4 +1,5 @@
 .*
+cp1/
 user_file/*
 !.gitignore
 

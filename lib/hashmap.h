@@ -17,7 +17,7 @@
 
 /*
  * any_t is a pointer.  This allows you to put arbitrary structures in
- * the hashmap.
+ * the lib.
  */
 typedef void *any_t;
 
@@ -35,47 +35,47 @@ typedef int (*PFany)(const char* key, any_t val, any_t args);
 typedef any_t map_t;
 
 /*
- * Return an empty hashmap. Returns NULL if empty.
+ * Return an empty lib. Returns NULL if empty.
 */
 extern map_t hashmap_new();
 
 /*
  * Iteratively call f with argument (item, data) for
- * each element data in the hashmap. The function must
+ * each element data in the lib. The function must
  * return a map status code. If it returns anything other
  * than MAP_OK the traversal is terminated. f must
- * not reenter any hashmap functions, or deadlock may arise.
+ * not reenter any lib functions, or deadlock may arise.
  */
 extern int hashmap_iterate(map_t in, PFany f, any_t args);
 
 /*
- * Add an element to the hashmap. Return MAP_OK or MAP_OMEM.
+ * Add an element to the lib. Return MAP_OK or MAP_OMEM.
  */
 extern int hashmap_put(map_t in, char* key, any_t value);
 
 /*
- * Get an element from the hashmap. Return MAP_OK or MAP_MISSING.
+ * Get an element from the lib. Return MAP_OK or MAP_MISSING.
  */
 extern int hashmap_get(map_t in, char* key, any_t *arg);
 
 /*
- * Remove an element from the hashmap. Return MAP_OK or MAP_MISSING.
+ * Remove an element from the lib. Return MAP_OK or MAP_MISSING.
  */
 extern int hashmap_remove(map_t in, char* key);
 
 /*
  * Get any element. Return MAP_OK or MAP_MISSING.
- * remove - should the element be removed from the hashmap
+ * remove - should the element be removed from the lib
  */
 extern int hashmap_get_one(map_t in, any_t *arg, int remove);
 
 /*
- * Free the hashmap
+ * Free the lib
  */
 extern void hashmap_free(map_t in);
 
 /*
- * Get the current size of a hashmap
+ * Get the current size of a lib
  */
 extern int hashmap_length(map_t in);
 

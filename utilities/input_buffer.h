@@ -3,7 +3,7 @@
 #include <sys/uio.h>
 #include <unistd.h>
 
-#include "../core/session.h"
+#include "../core/global.h"
 
 #define USERBUF_SIZE 8191
 
