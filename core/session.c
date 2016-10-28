@@ -15,7 +15,7 @@ void session_init(session_t *s) {
   s->non_local_chunks = NULL;
 }
 
-/* Iterator to tranverse and print hashmap content */
+/* Iterator to tranverse and print lib content */
 int chunk_map_iter(const char* key, char* val, map_t map) {
   console_log(" ---- <%s, %s>", key, val);
   return MAP_OK;

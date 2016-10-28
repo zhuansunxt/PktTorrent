@@ -16,7 +16,7 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 
-#include "../hashmap/hashmap.h"
+#include "hashmap.h"
 
 #define BT_FILENAME_LEN 255
 #define BT_MAX_PEERS 1024

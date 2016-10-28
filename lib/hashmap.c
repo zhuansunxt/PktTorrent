@@ -18,7 +18,7 @@ typedef struct _hashmap_element {
 	any_t data;
 } hashmap_element;
 
-/* A hashmap has some maximum size and current size,
+/* A lib has some maximum size and current size,
  * as well as the data to hold. */
 typedef struct _hashmap_map {
 	int table_size;
@@ -27,7 +27,7 @@ typedef struct _hashmap_map {
 } hashmap_map;
 
 /*
- * Return an empty hashmap, or NULL on failure.
+ * Return an empty lib, or NULL on failure.
  */
 map_t hashmap_new() {
 	hashmap_map* m = (hashmap_map*) malloc(sizeof(hashmap_map));
@@ -193,7 +193,7 @@ int hashmap_hash(map_t in, char* key){
 	int curr;
 	int i;
 
-	/* Cast the hashmap */
+	/* Cast the lib */
 	hashmap_map* m = (hashmap_map *) in;
 
 	/* If full, return immediately */
@@ -217,7 +217,7 @@ int hashmap_hash(map_t in, char* key){
 }
 
 /*
- * Doubles the size of the hashmap, and rehashes all the elements
+ * Doubles the size of the lib, and rehashes all the elements
  */
 int hashmap_rehash(map_t in){
 	int i;
@@ -257,13 +257,13 @@ int hashmap_rehash(map_t in){
 }
 
 /*
- * Add a pointer to the hashmap with some key
+ * Add a pointer to the lib with some key
  */
 int hashmap_put(map_t in, char* key, any_t value){
 	int index;
 	hashmap_map* m;
 
-	/* Cast the hashmap */
+	/* Cast the lib */
 	m = (hashmap_map *) in;
 
 	/* Find a place to put our value */
@@ -285,14 +285,14 @@ int hashmap_put(map_t in, char* key, any_t value){
 }
 
 /*
- * Get your pointer out of the hashmap with a key
+ * Get your pointer out of the lib with a key
  */
 int hashmap_get(map_t in, char* key, any_t *arg){
 	int curr;
 	int i;
 	hashmap_map* m;
 
-	/* Cast the hashmap */
+	/* Cast the lib */
 	m = (hashmap_map *) in;
 
 	/* Find data location */
@@ -319,17 +319,17 @@ int hashmap_get(map_t in, char* key, any_t *arg){
 }
 
 /*
- * Iterate the function parameter over each element in the hashmap.  The
+ * Iterate the function parameter over each element in the lib.  The
  * additional any_t argument is passed to the function as its first
- * argument and the hashmap element is the second.
+ * argument and the lib element is the second.
  */
 int hashmap_iterate(map_t in, PFany f, any_t args) {
 	int i;
 
-	/* Cast the hashmap */
+	/* Cast the lib */
 	hashmap_map* m = (hashmap_map*) in;
 
-	/* On empty hashmap, return immediately */
+	/* On empty lib, return immediately */
 	if (hashmap_length(m) <= 0)
 		return MAP_MISSING;
 
@@ -355,7 +355,7 @@ int hashmap_remove(map_t in, char* key){
 	int curr;
 	hashmap_map* m;
 
-	/* Cast the hashmap */
+	/* Cast the lib */
 	m = (hashmap_map *) in;
 
 	/* Find key */
@@ -384,14 +384,14 @@ int hashmap_remove(map_t in, char* key){
 	return MAP_MISSING;
 }
 
-/* Deallocate the hashmap */
+/* Deallocate the lib */
 void hashmap_free(map_t in){
 	hashmap_map* m = (hashmap_map*) in;
 	free(m->data);
 	free(m);
 }
 
-/* Return the length of the hashmap */
+/* Return the length of the lib */
 int hashmap_length(map_t in){
 	hashmap_map* m = (hashmap_map *) in;
 	if(m != NULL) return m->size;

@@ -8,9 +8,9 @@
 #ifndef PACTORRENT_SESSION_H
 #define PACTORRENT_SESSION_H
 
-#include "../hashmap/hashmap.h"
-#include "../utilities/bt_parse.h"
-#include "../utilities/commons.h"
+#include "hashmap.h"
+#include "bt_parse.h"
+#include "commons.h"
 
 /**
  * State definition for session.
