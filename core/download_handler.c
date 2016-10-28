@@ -38,7 +38,7 @@ packet_t *build_get_packet(const char *chunk_hash) {
  * @return built DATA packet.
  */
 packet_t *build_data_packet(unsigned int seq, size_t data_size, char *data) {
-  packet_t *data_packet;
+  packet_t *data_packet = pkt_new();
   uint16_t packet_len = HDRSZ + (uint16_t)data_size;
 
   data_packet->hdr->magic = htons(15441);
@@ -53,14 +53,46 @@ packet_t *build_data_packet(unsigned int seq, size_t data_size, char *data) {
   return data_packet;
 }
 
+void build_chunk_data_packets(const char *chunk_hash, g_state_t *g, short des_peer) {
+  /* Get chunk's offset in master-data-file */
+  int *offset = (int*)malloc(sizeof(int));
+  hashmap_get(g->g_config->chunks->has_chunk_map, chunk_hash, (any_t*) offset);
+  console_log("Building DATA packet for chunk %s with offset %d", chunk_hash, *offset);
+
+  int num_of_packet = (CHUNK_SIZE % DATA_PACKET_SIZE) > 0 ?
+                      (CHUNK_SIZE / DATA_PACKET_SIZE)+1 : (CHUNK_SIZE / DATA_PACKET_SIZE);
+  int i;
+  FILE *f = fopen(g->g_config->chunk_file, "r");
+  for (i = 0; i < num_of_packet; i++) {
+    unsigned int seq = i+1;
+    size_t data_size;
+    char data[DATA_PACKET_SIZE];
+
+    rewind(f);
+    long data_offset = (*offset) * CHUNK_SIZE + i * DATA_PACKET_SIZE;
+    fseek(f, data_offset, SEEK_SET);
+    if (i < (num_of_packet-1)) {
+      data_size = DATA_PACKET_SIZE;
+    } else {
+      data_size = CHUNK_SIZE % DATA_PACKET_SIZE;
+    }
+    fread(data, sizeof(uint8_t), data_size, f);
+    packet_t *data_packet = build_data_packet(seq, data_size, data);
+    enqueue(g->upload_conn_pool[des_peer]->window, data_packet);
+  }
+
+  fclose(f);
+  free(offset);
+}
+
 /**
  * Send GET packet to designated peer.
  * The invoker of this function is the receiver in downloading process.
  * @param id designated peer's id.
  * @param get_packet GET packet
  * @param g global state to retrieve socket and peers info
+ * TODO: set timeout for GET packet.
  */
-//TODO: set timeout for GET packet.
 void send_packet(short id, packet_t *get_packet, g_state_t *g){
   bt_peer_t *peer = bt_peer_info(g->g_config, id);
   spiffy_sendto(g->peer_socket, get_packet->raw, ntohs(get_packet->hdr->plen),
@@ -90,4 +122,16 @@ void process_get_packet(g_state_t *g, packet_t *get_packet, short from) {
   }
 
   console_log("Peer %d: received GET packet for chunk %s", g->g_config->identity, chunk_hash);
+
+  if (g->upload_conn_pool[from] == NULL) {
+    console_log("Peer %d: Start new upload connection to peer %d",
+                g->g_config->identity, from);
+    init_send_window(g, from);
+    build_chunk_data_packets(chunk_hash, g, from);
+    console_log("Peer %d: DATA packets are built. Current queue size: %u",
+                g->g_config->identity, g->upload_conn_pool[from]->window->size);
+  } else {
+    console_log("Peer %d: Existing upload connection with peer %d, reject GET.",
+                g->g_config->identity, from);
+  }
 }

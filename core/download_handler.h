@@ -19,7 +19,7 @@
 /* Packet builder */
 packet_t *build_get_packet(const char *chunk_hash);
 packet_t *build_data_packet(unsigned int seq, size_t data_size, char *data);
-
+void build_chunk_data_packets(const char *chunk_hash, g_state_t *g, short des_peer);
 void send_packet(short id, packet_t *get_packet, g_state_t *g);
 void process_get_packet(g_state_t *g, packet_t *get_packet, short from);
 

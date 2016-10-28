@@ -28,7 +28,7 @@ typedef struct bt_peer_s {
   struct bt_peer_s *next;
 } bt_peer_t;
 
-/* In-memory master-chunk-file */
+/* In-memory has-chunk-file */
 typedef struct bt_chunks_s {
   char master_data_file[BT_FILENAME_LEN];   // master-data-file path.
   map_t has_chunk_map;                      // chunk --> id.
@@ -47,7 +47,7 @@ struct bt_config_s {
   /* Global peer info */
   bt_peer_t *peers;
 
-  /* Master-chunk-file info */
+  /* Has-chunk-file info */
   bt_chunks_t *chunks;
 
   /* Peer's own configuration infomations */

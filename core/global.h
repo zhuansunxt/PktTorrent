@@ -8,9 +8,10 @@
 #ifndef PACTORRENT_SESSION_H
 #define PACTORRENT_SESSION_H
 
-#include "hashmap.h"
+#include "../lib/hashmap.h"
 #include "bt_parse.h"
-#include "commons.h"
+#include "../utilities/commons.h"
+#include "../lib/queue.h"
 
 /**
  * State definition for session.
@@ -21,7 +22,8 @@ typedef enum session_state_enum{
   AWAITING_IHAVE,
   AWAITING_GET,
   AWAITING_DATA,
-  AWAITING_ACK
+  AWAITING_ACK,
+  DONE,
 } session_state_t;
 
 /**
@@ -46,15 +48,42 @@ typedef struct session_s {
 } session_t;
 
 /**
+ * Window type used by receiver in reliable network transfer.
+ */
+typedef struct recv_window_s {
+  queue *window;
+  size_t max_window_size;
+} recv_window_t;
+
+/**
+ * Window type used by sender in reliable network transfer.
+ * The difference agains recv_window_t is it contains congestion
+ * control mechanism.
+ */
+typedef struct send_window_s {
+  queue *window;
+  size_t max_window_size;
+} send_window_t;
+
+/**
  * Global states shared by all components.
  */
 typedef struct g_state_s {
   int peer_socket;          // socket listener for peers.
   bt_config_t *g_config;    // configurations.
   session_t *g_session;     // session state.
+  send_window_t * upload_conn_pool[MAX_PEER_NUM];     // pool for downloading connections.
+  recv_window_t * download_conn_pool[MAX_PEER_NUM];   // pool for uploading connections.
 } g_state_t;
 
+void g_state_init(g_state_t *g);
 void session_init(session_t *s);
 void dump_session(session_t *s);
+
+/* Window helper */
+void init_recv_window(g_state_t *g, short peer_id);
+void free_recv_window(g_state_t *g, short peer_id);
+void init_send_window(g_state_t *g, short peer_id);
+void free_send_window(g_state_t *g, short peer_id);
 
 #endif //PACTORRENT_SESSION_H

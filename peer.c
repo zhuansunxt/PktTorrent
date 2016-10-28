@@ -32,12 +32,12 @@ int main(int argc, char **argv) {
   g_state_t g_state;
   bt_config_t config;
 
+  g_state_init(&g_state);
+
   /* Configuration info initialization. */
   bt_init(&config, argc, argv);
   bt_parse_command_line(&config);
   g_state.g_config = &config;
-
-  g_state.g_session = NULL;
 
   peer_run(&g_state);
   return 0;
