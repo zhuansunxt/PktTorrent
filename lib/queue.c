@@ -52,7 +52,7 @@ void* dequeue(queue* q) {
   qnode_t *head = q->front;
   void *data = q->front->data;
 
-  if (q->size == 0 && (q->front==q->end)) {
+  if (q->size == 1 && (q->front==q->end)) {
     q->front = NULL;
     q->end = NULL;
   } else {
