@@ -51,6 +51,7 @@ struct bt_config_s {
   /* Peer's own configuration infomations */
   unsigned short myport;
 
+  // TODO: remove
   char  output_file[BT_FILENAME_LEN];
 };
 typedef struct bt_config_s bt_config_t;
