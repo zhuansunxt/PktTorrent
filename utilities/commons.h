@@ -21,7 +21,8 @@
 #define PACKET_LEN 1500
 #define PACKET_TYPE_OFFSET 3
 #define MAX_PEER_NUM 64     /* TODO: figureout the best config of this */
-#define INIT_WINDOW_SIZE 8;
+#define MAX_SEQ_NUM 354     /* CHUNK_SIZE/DATA_PACKET_SIZE + 1 */
+#define INIT_WINDOW_SIZE 8
 
 #define CHUNK_SIZE (512*1024)
 #define DATA_PACKET_SIZE (1500-16)

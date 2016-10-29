@@ -67,11 +67,6 @@ void process_inbound_udp(g_state_t *g_state) {
     return;
   }
 
-#ifdef DEBUG
-  console_log("Peer %d: Incoming message from %d",
-              g_state->g_config->identity, id);
-#endif
-
   process_packet(g_state, buf, id);
 }
 
@@ -155,5 +150,8 @@ void peer_run(g_state_t * g_state) {
       }
 
     } // End if (nfds > 0).
+
+    do_upload(g_state);
+    do_download(g_state);
   } // End while loop.
 } // End peer_run function

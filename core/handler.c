@@ -23,22 +23,29 @@ void process_packet(g_state_t *g, char *buf, short id) {
 
   switch (type) {
     case 0:
-      console_log("Peer %d: Receiving WHOHAS packet", g->g_config->identity);
+      console_log("Peer %d: Receiving WHOHAS packet from peer %d",
+                  g->g_config->identity, id);
       process_who_has_packet(g, packet, id);
       break;
     case 1:
-      console_log("Peer %d: Receiving IHAVE packet", g->g_config->identity);
+      console_log("Peer %d: Receiving IHAVE packet from peer %d",
+                  g->g_config->identity, id);
       process_ihave_packet(g, packet, id);
       break;
     case 2:
-      console_log("Peer %d: Receiving  GET packet", g->g_config->identity);
+      console_log("Peer %d: Receiving  GET packet from peer %d",
+                  g->g_config->identity, id);
       process_get_packet(g, packet, id);
       break;
     case 3:
-      console_log("Peer %d: Receiving DATA packet", g->g_config->identity);
+      console_log("Peer %d: Receiving DATA packet from peer %d",
+                  g->g_config->identity, id);
+      process_data_packet(g, packet, id);
       break;
     case 4:
-      console_log("Peer %d: Receiving ACK packet", g->g_config->identity);
+      console_log("Peer %d: Receiving ACK packet from peer %d",
+                  g->g_config->identity, id);
+      process_ack_packet(g, packet, id);
       break;
     case 5:
       console_log("Peer %d: Receiving DENIED packet", g->g_config->identity);
