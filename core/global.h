@@ -13,6 +13,8 @@
 #include "../utilities/commons.h"
 #include "../lib/queue.h"
 
+#define HASHSTR_SZ 64
+
 /**
  * State definition for session.
  */

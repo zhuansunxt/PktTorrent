@@ -55,9 +55,10 @@ packet_t *build_data_packet(unsigned int seq, size_t data_size, char *data) {
 
 void build_chunk_data_packets(const char *chunk_hash, g_state_t *g, short des_peer) {
   /* Get chunk's offset in master-data-file */
-  int *offset = (int*)malloc(sizeof(int));
-  hashmap_get(g->g_config->chunks->has_chunk_map, chunk_hash, (any_t*) offset);
-  console_log("Building DATA packet for chunk %s with offset %d", chunk_hash, *offset);
+  any_t offset;
+  hashmap_get(g->g_config->chunks->has_chunk_map, chunk_hash, &offset);
+  console_log("Building DATA packet for chunk %s with offset %d",
+              chunk_hash, (intptr_t) offset);
 
   int num_of_packet = (CHUNK_SIZE % DATA_PACKET_SIZE) > 0 ?
                       (CHUNK_SIZE / DATA_PACKET_SIZE)+1 : (CHUNK_SIZE / DATA_PACKET_SIZE);
@@ -69,7 +70,7 @@ void build_chunk_data_packets(const char *chunk_hash, g_state_t *g, short des_pe
     char data[DATA_PACKET_SIZE];
 
     rewind(f);
-    long data_offset = (*offset) * CHUNK_SIZE + i * DATA_PACKET_SIZE;
+    long data_offset = ((intptr_t) offset) * CHUNK_SIZE + i * DATA_PACKET_SIZE;
     fseek(f, data_offset, SEEK_SET);
     if (i < (num_of_packet-1)) {
       data_size = DATA_PACKET_SIZE;
@@ -82,7 +83,6 @@ void build_chunk_data_packets(const char *chunk_hash, g_state_t *g, short des_pe
   }
 
   fclose(f);
-  free(offset);
 }
 
 /**
@@ -108,13 +108,13 @@ void send_packet(short id, packet_t *get_packet, g_state_t *g){
  */
 void process_get_packet(g_state_t *g, packet_t *get_packet, short from) {
   /* Retrieve hashed chunk */
-  char *chunk_ptr = (char*)get_packet->payload;
+  const uint8_t *chunk_ptr = get_packet->payload;
   char chunk_hash[2*SHA1_HASH_SIZE+1];
   hex2ascii(chunk_ptr, SHA1_HASH_SIZE, chunk_hash);
   chunk_hash[2*SHA1_HASH_SIZE] = '\0';
 
-  char *dummy;
-  if (hashmap_get(g->g_config->chunks->has_chunk_map, chunk_hash, (any_t*)&dummy)
+  any_t dummy;
+  if (hashmap_get(g->g_config->chunks->has_chunk_map, chunk_hash, &dummy)
           == MAP_MISSING) {
     console_log("Peer %d: received GET packet for nl-chunk %s, drop it!",
                 g->g_config->identity, chunk_hash);

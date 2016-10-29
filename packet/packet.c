@@ -5,6 +5,8 @@
  * @author Longqi Cai   <longqic@andrew.cmu.edu>
  */
 
+#include <strings.h>
+#include "commons.h"
 #include "packet.h"
 
 packet_t* pkt_new() {

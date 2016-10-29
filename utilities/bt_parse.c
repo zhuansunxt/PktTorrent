@@ -168,7 +168,7 @@ void bt_parse_peer_list(bt_config_t *config) {
 
 void bt_parse_chunks_info(bt_config_t *config) {
   char *line = NULL;
-  int len;
+  size_t len;
   FILE *m_chunk_f;
   FILE *has_chunk_f;
   char dummy[BT_FILENAME_LEN];
@@ -194,8 +194,8 @@ void bt_parse_chunks_info(bt_config_t *config) {
   while(getline(&line, &len, has_chunk_f) != -1) {
     if (line[0] == '#') continue;
     char *hash_key = (char*)malloc(64);
-    int *chunk_id = (int*)malloc(sizeof(int));
-    assert(sscanf(line, "%d %s", &chunk_id, hash_key) != 0);
+    any_t chunk_id;
+    assert(sscanf(line, "%ld %s", (intptr_t*) &chunk_id, hash_key) != 0);
     hashmap_put(config->chunks->has_chunk_map, hash_key, chunk_id);
   }
   free(line);
@@ -223,8 +223,8 @@ void bt_dump_config(bt_config_t *config) {
 }
 
 
-int hash_map_iter(const char* key, int* val, map_t map) {
-  console_log("--- <%s, %d>", key, val);
+int hash_map_iter(const char* key, any_t val, map_t map) {
+  console_log("--- <%s, %d>", key, (intptr_t) val);
   return MAP_OK;
 }
 

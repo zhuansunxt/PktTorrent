@@ -23,9 +23,9 @@ ssize_t spiffy_sendto(int s, const void *msg, size_t len, int flags, const struc
         }
 
 	newbuf = (void *) malloc(sizeof(spiffy_header) + len);
-	if (newbuf == NULL) { 
+	if (newbuf == NULL) {
 		errno = ENOMEM;
-		return -1; 
+		return -1;
 	}
 	if (to->sa_family == AF_INET) {
         	s_head.lDestAddr = ((struct sockaddr_in*)to)->sin_addr.s_addr;
@@ -65,9 +65,9 @@ int spiffy_recvfrom (int socket, void *buffer, size_t size, int flags, struct so
 	}
 
 	newbuf = (char *) malloc(size + sizeof(spiffy_header));
-	if (newbuf == NULL) { 
+	if (newbuf == NULL) {
 		printf("spiffy malloc failed \n");
-		return -1; 
+		return -1;
 	}
 
 	retVal = recvfrom(socket, newbuf, size + sizeof(spiffy_header), flags, (struct sockaddr *) &sRecvAddr, lengthPtr);
@@ -118,7 +118,7 @@ int spiffy_init (long lNodeID, const struct sockaddr *addr, socklen_t addrlen) {
 	gsSrcPort = ((struct sockaddr_in *)addr)->sin_port;
 
 	fprintf(stderr, "Spiffy local stuff:  %08x:%d\n",
-		glSrcAddr, ntohs(gsSrcPort));
+		(unsigned) glSrcAddr, ntohs(gsSrcPort));
 	fprintf(stderr, "Spiffy setup complete.  %s:%d\nDelete this line after testing.\n",
 		inet_ntoa(gsSpiffyRouter.sin_addr), ntohs(gsSpiffyRouter.sin_port));
 	return 0;

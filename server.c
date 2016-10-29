@@ -30,13 +30,11 @@ typedef struct data_packet {
 
 
 int main(int argc, char **argv) {
-  struct sockaddr_in addr, from;
+  struct sockaddr_in from;
   socklen_t fromlen;
   char buf[PACKETLEN];
-  int sock;
   struct sockaddr_in myaddr;
   fd_set readfds;
-  struct user_iobuf *userbuf;
   int fd = socket(AF_INET, SOCK_DGRAM, 0);
   data_packet_t *curr;
 

@@ -89,7 +89,7 @@ void process_who_has_packet(g_state_t *g, packet_t* wh_packet, short id) {
   ihave_packet->hdr->ackn = (uint32_t)htonl(0);
 
   uint8_t i = 0;
-  char *chunk_ptr = (char*)wh_packet->payload + 4*sizeof(uint8_t);
+  uint8_t *chunk_ptr = wh_packet->payload + 4*sizeof(uint8_t);
   char *ihave_payload_ptr = (char*)ihave_packet->payload + 4*sizeof(uint8_t);
   uint8_t ihave_chunk_cnt = 0;
 
@@ -98,8 +98,8 @@ void process_who_has_packet(g_state_t *g, packet_t* wh_packet, short id) {
     hex2ascii(chunk_ptr, SHA1_HASH_SIZE, chunk_hash);
     chunk_hash[SHA1_HASH_SIZE*2] = '\0';
 
-    char *dummy;
-    if (hashmap_get(g->g_config->chunks->has_chunk_map, chunk_hash, (any_t*)&dummy)
+    any_t dummy;
+    if (hashmap_get(g->g_config->chunks->has_chunk_map, chunk_hash, &dummy)
             == MAP_OK) {
       ihave_chunk_cnt++;
       console_log("Peer %d: I have chunk %s in local for peer %d",
@@ -130,17 +130,15 @@ void process_ihave_packet(g_state_t *g, packet_t* ih_packet, short id) {
   assert(num_of_chunks > 0);
 
   uint8_t i = 0;
-  char *chunk_ptr = (char*)ih_packet->payload + 4*sizeof(uint8_t);
+  uint8_t *chunk_ptr = ih_packet->payload + 4*sizeof(uint8_t);
 
   for (; i < num_of_chunks; i++, chunk_ptr+=SHA1_HASH_SIZE) {
     char *chunk_hash = (char *)malloc(SHA1_HASH_SIZE*2+1);
     hex2ascii(chunk_ptr, SHA1_HASH_SIZE, chunk_hash);
     chunk_hash[2*SHA1_HASH_SIZE] = '\0';
-    short* ihave_peer_id = (short*)malloc(sizeof(short));
-    *ihave_peer_id = id;
 
     hashmap_put(g->g_session->nlchunk_map,
-                chunk_hash, ihave_peer_id);
+                chunk_hash, (any_t) (intptr_t) id);
 
     console_log("Peer %d: Peer %d has chunk %s",
                 g->g_config->identity, id, chunk_hash);

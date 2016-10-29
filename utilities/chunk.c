@@ -49,17 +49,17 @@ void shahash(uint8_t *str, int len, uint8_t *hash) {
 }
 
 /**
- * converts the binary char string str to ascii format. the length of 
+ * converts the binary char string str to ascii format. the length of
  * ascii should be 2 times that of str
  */
-void binary2hex(uint8_t *buf, int len, char *hex) {
+void binary2hex(const uint8_t *buf, int len, char *hex) {
 	int i=0;
 	for(i=0;i<len;i++) {
 		sprintf(hex+(i*2), "%.2x", buf[i]);
 	}
 	hex[len*2] = 0;
 }
-  
+
 /**
  *Ascii to hex conversion routine
  */
@@ -74,10 +74,10 @@ static uint8_t _hex2binary(char hex)
  * converts the ascii character string in "ascii" to binary string in "buf"
  * the length of buf should be atleast len / 2
  */
-void hex2binary(char *hex, int len, uint8_t*buf) {
+void hex2binary(const char *hex, int len, uint8_t*buf) {
 	int i = 0;
 	for(i=0;i<len;i+=2) {
-		buf[i/2] = 	_hex2binary(hex[i]) << 4 
+		buf[i/2] = 	_hex2binary(hex[i]) << 4
 				| _hex2binary(hex[i+1]);
 	}
 }
@@ -89,7 +89,7 @@ int main(int argc, char *argv[]) {
 	char ascii[SHA1_HASH_SIZE*2+1];
 
 	shahash(test,4,hash);
-	
+
 	binary2hex(hash,SHA1_HASH_SIZE,ascii);
 
 	printf("%s\n",ascii);
