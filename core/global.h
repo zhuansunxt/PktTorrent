@@ -68,7 +68,7 @@ typedef struct send_window_s {
   uint32_t last_packet_acked;       // last packet that get ACKed.
   uint32_t last_packet_sent;        // last packet that is sent out.
   uint32_t last_packet_available;   // serves as window boundary.
-  map_t dup_ack;                    // keep track of duplicate ack.
+  uint8_t dup_ack_map[MAX_SEQ_NUM+1];   // keep track of duplicate ACK.
 } send_window_t;
 
 /**

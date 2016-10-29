@@ -65,16 +65,16 @@ void init_send_window(g_state_t *g, short peer_id) {
   send_window->last_packet_acked = 0;
   send_window->last_packet_sent = 0;
   send_window->last_packet_available = INIT_WINDOW_SIZE;
-  int i = 0;
-  for (; i <= MAX_PEER_NUM; i++)
+  int i;
+  for (i = 0; i <= MAX_PEER_NUM; i++)
     send_window->buffer[i] = NULL;
-  send_window->dup_ack = hashmap_new();
+  for (i = 0; i <= MAX_PEER_NUM; i++)
+    send_window->dup_ack_map[i] = 0;
 
   g->upload_conn_pool[peer_id] = send_window;
 }
 
 void free_send_window(g_state_t *g, short peer_id) {
-  hashmap_free(g->upload_conn_pool[peer_id]->dup_ack);
   free(g->upload_conn_pool[peer_id]);
   g->download_conn_pool[peer_id] = NULL;
 }

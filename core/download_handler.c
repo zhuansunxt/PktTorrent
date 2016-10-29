@@ -195,8 +195,20 @@ void process_data_packet(g_state_t *g, packet_t *data_packet, short from) {
      * and should send ACK packet with ack number 6 (next_packet_expected-1).
      */
 
-    while (window->buffer[window->next_packet_expected] != NULL)
+    while (window->next_packet_expected <= MAX_SEQ_NUM
+          && window->buffer[window->next_packet_expected] != NULL) {
       window->next_packet_expected++;
+    }
+
+    if (window->next_packet_expected == MAX_SEQ_NUM+1) {
+      /* Received all DATA packets for this chunk */
+      packet_t *ack_packet = build_ack_packet(window->next_packet_expected-1);
+      send_packet(from, ack_packet, g);
+      console_log("Peer %d: Received all DATA packets from peer %d. Close download connection!",
+                    g->g_config->identity, from);
+      /* TODO: assemble all DATA packet to a chunk */
+      return;
+    }
     packet_t *ack_packet = build_ack_packet(window->next_packet_expected-1);
     send_packet(from, ack_packet, g);
     console_log("Peer %d: Sent ACK %u back to peer %d",
@@ -205,7 +217,7 @@ void process_data_packet(g_state_t *g, packet_t *data_packet, short from) {
 
     /* Upon receiving packet whose SEQ is larger than next_packet_expected,
      * it means currently there's a GAP in the buffer.
-     * Should send duplicate ACK to sender to indicate this GAP.
+     * Should send duplicate ACK to uploader to indicate this GAP.
      */
 
     packet_t *dup_ack_packet = build_ack_packet(window->next_packet_expected-1);
@@ -222,6 +234,11 @@ void process_data_packet(g_state_t *g, packet_t *data_packet, short from) {
 //              g->g_config->identity, window->next_packet_expected);
 }
 
+int dup_map_iter(const char* key, any_t val, map_t map) {
+  console_log("--- <%s, %d>", key, (intptr_t)val);
+  return MAP_OK;
+}
+
 /**
  * Process incoming ACK packet from peer.
  * The invoker of this function is the sender who uploads DATA packets.
@@ -235,38 +252,37 @@ void process_ack_packet(g_state_t *g, packet_t *ack_packet, short from) {
   uint32_t ack_number = htonl(ack_packet->hdr->ackn);
   send_window_t *window = g->upload_conn_pool[from];
 
-  char ack_number_str[4];
-  sprintf(ack_number_str, "%u", ack_number);
-  any_t ack_cnt;
-  if (hashmap_get(window->dup_ack, ack_number_str, &ack_cnt) == MAP_MISSING) {
+  if (window->dup_ack_map[ack_number] == 0) {
     /* First appearance accumulative ACK.
      * It means all packet whose SEQ is less or equal to ACK is received by receiver.
      * Update last_packet_acked and last_packet_available to move forward.
      */
 
-    /* Record this ACK for potential further ACK */
-    ack_cnt = 1;
-    hashmap_put(window->dup_ack, ack_number_str, ack_cnt);
+    if (ack_number == MAX_SEQ_NUM) {
+      /* Downloader received all DATA packet! */
+      console_log("Peer %d: peer %d received all DATA packet!",
+                  g->g_config->identity, from);
+      console_log("Peer %d: Closing uploading connection with peer %d",
+                  g->g_config->identity, from);
+      free_send_window(g, from);
+    }
 
+    window->dup_ack_map[ack_number] = 1;
     console_log("Peer %d: Received ACK %u from peer %d",
                 g->g_config->identity, ack_number, from);
     window->last_packet_acked = ack_number;
-    window->last_packet_available = window->last_packet_acked + window->max_window_size;
+    window->last_packet_available =
+            MIN(window->last_packet_acked + window->max_window_size, MAX_SEQ_NUM);
+  } else if (window->dup_ack_map[ack_number] == 1) {
+    window->dup_ack_map[ack_number] == 2;
+  } else if (window->dup_ack_map[ack_number] == 2) {
+    /* 3-time duplicate ACK, which indicates lost packet whose SEQ == ACK.
+     * Resend lost packet */
+    console_log("Peer %d: Received DUP ACK %u from peer %d",
+                g->g_config->identity, ack_number, from);
+    send_packet(from, window->buffer[ack_number + 1], g);
   } else {
-    /* Duplicate ACK */
-    if (ack_cnt == 1) {
-      /* 2-time duplicate ACK. Ignore this case and update duplicate ACK table */
-      ack_cnt = 2;
-      hashmap_put(window->dup_ack, ack_number_str, ack_cnt);
-    } else if (ack_cnt == 2) {
-      /* 3-time duplicate ACK, which indicates lost packet whose SEQ == ACK.
-       * Resend lost packet */
-      console_log("Peer %d: Received DUP ACK %u from peer %d",
-                  g->g_config->identity, ack_number, from);
-      send_packet(from, window->buffer[ack_number], g);
-    } else {
-      /* Control flow should never reach here */
-    }
+    /* Control should never reach here */
   }
 }
 
