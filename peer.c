@@ -125,7 +125,9 @@ void peer_run(g_state_t * g_state) {
     FD_SET(STDIN_FILENO, &readfds);
     FD_SET(sock, &readfds);
 
-    nfds = select(sock+1, &readfds, NULL, NULL, NULL);
+    struct timeval select_timeout;
+    select_timeout.tv_sec = 3;
+    nfds = select(sock+1, &readfds, NULL, NULL, &select_timeout);
 
     if (nfds > 0) {
 

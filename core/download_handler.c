@@ -305,7 +305,8 @@ void do_upload(g_state_t *g) {
         long time_diff = get_time_diff(&curr_time, &(window->timestamp[sent_iter]));
         if(time_diff > g->data_timeout_millsec) {
           /* Timeout detected */
-          console_log("Peer %d: DATA packet with SEQ %u TIME OUT! Resend now...");
+          console_log("Peer %d: DATA packet with SEQ %u TIME OUT! Resend now...",
+                      g->g_config->identity, sent_iter);
           gettimeofday(&(window->timestamp[sent_iter]), NULL);
           send_packet(i, window->buffer[sent_iter], g);
         }

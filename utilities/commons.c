@@ -21,8 +21,6 @@ void console_log(const char *fmt, ...){
  * return millisecond
  */
 long get_time_diff(struct timeval *t1, struct timeval *t2) {
-  assert(t1->tv_sec >= t2->tv_sec && t1->tv_usec >= t2->tv_usec);
-
   long diff = (t1->tv_sec - t2->tv_sec) * 1000L +
           (t1->tv_usec - t2->tv_usec) / 1000L;
 
