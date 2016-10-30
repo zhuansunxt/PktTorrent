@@ -8,6 +8,7 @@
 #include "global.h"
 
 void g_state_init(g_state_t *g) {
+  g->data_timeout_millsec = 3000;    // TODO: do RTT estimation.
   g->peer_socket = -1;
   g->g_config = NULL;
   g->g_session = NULL;

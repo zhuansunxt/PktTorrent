@@ -69,12 +69,14 @@ typedef struct send_window_s {
   uint32_t last_packet_sent;        // last packet that is sent out.
   uint32_t last_packet_available;   // serves as window boundary.
   uint8_t dup_ack_map[MAX_SEQ_NUM+1];   // keep track of duplicate ACK.
+  struct timeval timestamp[MAX_SEQ_NUM+1]; // Timer for each DATA packet.
 } send_window_t;
 
 /**
  * Global states shared by all components.
  */
 typedef struct g_state_s {
+  int data_timeout_millsec;     // Estimated timeout threshold.
   int peer_socket;          // socket listener for peers.
   bt_config_t *g_config;    // configurations.
   session_t *g_session;     // session state.

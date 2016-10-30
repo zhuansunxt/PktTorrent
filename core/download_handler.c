@@ -274,7 +274,7 @@ void process_ack_packet(g_state_t *g, packet_t *ack_packet, short from) {
     window->last_packet_available =
             MIN(window->last_packet_acked + window->max_window_size, MAX_SEQ_NUM);
   } else if (window->dup_ack_map[ack_number] == 1) {
-    window->dup_ack_map[ack_number] == 2;
+    window->dup_ack_map[ack_number] = 2;
   } else if (window->dup_ack_map[ack_number] == 2) {
     /* 3-time duplicate ACK, which indicates lost packet whose SEQ == ACK.
      * Resend lost packet */
@@ -297,8 +297,23 @@ void do_upload(g_state_t *g) {
     if (g->upload_conn_pool[i] != NULL) {
       send_window_t * window= g->upload_conn_pool[i];
 
-      /* Keep sending packets until last_packet_sent is equal to last_packet_available. */
+      /* Check Timeout */
+      uint32_t sent_iter = window->last_packet_acked+1;
+      struct timeval curr_time;
+      for (; sent_iter <= window->last_packet_sent; sent_iter++) {
+        gettimeofday(&curr_time, NULL);
+        long time_diff = get_time_diff(&curr_time, &(window->timestamp[sent_iter]));
+        if(time_diff > g->data_timeout_millsec) {
+          /* Timeout detected */
+          console_log("Peer %d: DATA packet with SEQ %u TIME OUT! Resend now...");
+          gettimeofday(&(window->timestamp[sent_iter]), NULL);
+          send_packet(i, window->buffer[sent_iter], g);
+        }
+      }
+
       while (window->last_packet_sent < window->last_packet_available) {
+        /* Send packets in range (last_packet_sent, last_packet_available] */
+        gettimeofday(&(window->timestamp[window->last_packet_sent+1]), NULL);
         send_packet(i, window->buffer[++window->last_packet_sent], g);
       }
     }

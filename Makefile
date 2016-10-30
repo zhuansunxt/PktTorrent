@@ -15,7 +15,7 @@ CFLAGS += $(foreach MODULE,$(MODULES),-I$(MODULE))
 
 BINS           := peer client server make_chunks
 #TESTBINS       := test_debug test_input_buffer  # not automatic
-UTESTBINS      := test_hashmap test_packet test_queue
+UTESTBINS      := test_hashmap test_packet test_queue test_diff_time
 
 BUILD     := build
 SRCS_DEP  := $(shell find $(MODULES) -name "*.c")
