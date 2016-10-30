@@ -13,7 +13,7 @@
 
 /* We need to keep keys and values */
 typedef struct _hashmap_element {
-	const char* key;
+	char* key;
 	int in_use;
 	any_t data;
 } hashmap_element;
@@ -259,7 +259,16 @@ int hashmap_rehash(map_t in){
 /*
  * Add a pointer to the lib with some key
  */
-int hashmap_put(map_t in, const char* key, any_t value){
+int hashmap_put(map_t in, const char* key, any_t value) {
+  return _hashmap_put(in, key, value, 1);
+}
+
+/*
+ * Checks if we copies key when it's first met.
+ * Won't copy anyway if key is already in it.
+ * API would make copy_key true, and rehash would make it false.
+ */
+int _hashmap_put(map_t in, const char* key, any_t value, int copy_key_first_time){
 	int index;
 	hashmap_map* m;
 
@@ -277,7 +286,16 @@ int hashmap_put(map_t in, const char* key, any_t value){
 
 	/* Set the data */
 	m->data[index].data = value;
-	m->data[index].key = key;
+  // won't copy if
+  // 1. we don't want copy
+  // 2. it's already in use
+  if (!copy_key_first_time || m->data[index].in_use) {
+    m->data[index].key = key;
+  } else {
+    size_t len = strlen(key);
+    m->data[index].key = malloc(len+1);
+    memcpy(m->data[index].key, key, len+1);
+  }
 	m->data[index].in_use = 1;
 	m->size++;
 
@@ -367,6 +385,9 @@ int hashmap_remove(map_t in, const char* key){
         int in_use = m->data[curr].in_use;
         if (in_use == 1){
             if (strcmp(m->data[curr].key,key)==0){
+                /* Free key */
+                free(m->data[curr].key);
+
                 /* Blank out the fields */
                 m->data[curr].in_use = 0;
                 m->data[curr].data = NULL;
@@ -384,8 +405,13 @@ int hashmap_remove(map_t in, const char* key){
 	return MAP_MISSING;
 }
 
+void _free_keys(const char* key, any_t val, any_t args) {
+  free((void*) key);
+}
+
 /* Deallocate the lib */
 void hashmap_free(map_t in){
+  hashmap_iterate(in, _free_keys, NULL);
 	hashmap_map* m = (hashmap_map*) in;
 	free(m->data);
 	free(m);
