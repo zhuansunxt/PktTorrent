@@ -15,3 +15,14 @@ void console_log(const char *fmt, ...){
   printf("\n");
   va_end(args);
 }
+
+/*
+ * t1 will be ensured to be later than t2
+ * return millisecond
+ */
+long get_time_diff(struct timeval *t1, struct timeval *t2) {
+  long diff = (t1->tv_sec - t2->tv_sec) * 1000L +
+          (t1->tv_usec - t2->tv_usec) / 1000L;
+
+  return diff;
+}

@@ -68,8 +68,22 @@ int main(int argc, char** argv) {
   assert( hashmap_get(map2, kk2, &vv2) == MAP_OK && vv2 == v2 );
   assert( hashmap_get(map2, kk3, &vv3) == MAP_OK && vv3 == v3 );
 
-  printf("%s succeeds!\n", argv[0]);
+  /* Extra tests for dup ack */
+  map_t ack_map = hashmap_new();
+  uint16_t ack_num = 1;
+  char ack[4];
+  any_t cnt = 0;
+  sprintf(ack, "%d", ack_num);
+  hashmap_put(ack_map, ack, cnt);
 
+  any_t get_cnt;
+  hashmap_get(ack_map, ack, &get_cnt);
+  printf("cnt: %d\n", (uint16_t)get_cnt);
+  assert((uint16_t)get_cnt == cnt);
+  hashmap_free(ack_map);
+
+  /* clean up */
   hashmap_free(map);
+  printf("%s succeeds!\n", argv[0]);
   return 0;
 }

@@ -12,6 +12,7 @@
 #include "bt_parse.h"
 #include "../utilities/commons.h"
 #include "../lib/queue.h"
+#include "../packet/packet.h"
 
 #define HASHSTR_SZ 64
 
@@ -53,8 +54,9 @@ typedef struct session_s {
  * Window type used by receiver in reliable network transfer.
  */
 typedef struct recv_window_s {
-  queue *window;
-  size_t max_window_size;
+  packet_t* buffer[MAX_SEQ_NUM+1];  // buffer already received DATA packet.
+  size_t max_window_size;           // upper bound on current window size.
+  uint32_t next_packet_expected;    // next expected packet's sequence number.
 } recv_window_t;
 
 /**
@@ -63,14 +65,20 @@ typedef struct recv_window_s {
  * control mechanism.
  */
 typedef struct send_window_s {
-  queue *window;
-  size_t max_window_size;
+  packet_t *buffer[MAX_SEQ_NUM+1];  // buffer all DATA packet.
+  size_t max_window_size;           // upper bound on current window size.
+  uint32_t last_packet_acked;       // last packet that get ACKed.
+  uint32_t last_packet_sent;        // last packet that is sent out.
+  uint32_t last_packet_available;   // serves as window boundary.
+  uint8_t dup_ack_map[MAX_SEQ_NUM+1];   // keep track of duplicate ACK.
+  struct timeval timestamp[MAX_SEQ_NUM+1]; // Timer for each DATA packet.
 } send_window_t;
 
 /**
  * Global states shared by all components.
  */
 typedef struct g_state_s {
+  int data_timeout_millsec;     // Estimated timeout threshold.
   int peer_socket;          // socket listener for peers.
   bt_config_t *g_config;    // configurations.
   session_t *g_session;     // session state.

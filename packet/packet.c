@@ -42,6 +42,9 @@ void print_packet(packet_t *pkt) {
       break;
     case 2: // GET.
       break;
+    case 3: // DATA.
+      console_log("--- [DATA Payload]");
+      break;
     default:
       console_log("[Error] Invalid packet type");
   }
