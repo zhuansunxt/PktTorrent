@@ -37,7 +37,7 @@ void process_get(char *chunkfile, char *outputfile, g_state_t *g){
       g->g_session->state = AWAITING_WHOHAS;
       session_nlchunk_t *nlchunk = (session_nlchunk_t*)malloc(sizeof(session_nlchunk_t));
       assert(nlchunk != NULL);
-      strcpy(nlchunk->chunk_hash, value);
+      strcpy(nlchunk->chunk_hash, key);
       nlchunk->next = g->g_session->non_local_chunks;
       g->g_session->non_local_chunks = nlchunk;
     }
