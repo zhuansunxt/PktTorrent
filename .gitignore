@@ -18,4 +18,3 @@ make_chunks
 server
 client
 example/*
-*.sh
