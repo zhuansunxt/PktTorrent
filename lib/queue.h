@@ -11,7 +11,7 @@
 #include <stdlib.h>
 
 typedef struct qnode_s {
-  struct node *next;
+  struct qnode_s *next;
   void *data;
 } qnode_t;
 

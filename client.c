@@ -31,8 +31,6 @@ typedef struct data_packet {
 int main(int argc, char **argv) {
   int fd = socket(AF_INET, SOCK_DGRAM, 0);
   struct sockaddr_in myaddr, toaddr;
-  socklen_t fromlen;
-  char buf[BUFLEN];
 
   data_packet_t packet;
 
@@ -49,7 +47,7 @@ int main(int argc, char **argv) {
   assert(bind(fd, (struct sockaddr *) &myaddr, sizeof(myaddr)) >= 0);
 
   /* init spiffy */
-  spiffy_init(atoi(argv[1]), &myaddr, sizeof(myaddr));
+  spiffy_init(atoi(argv[1]), (struct sockaddr*) &myaddr, sizeof(myaddr));
 
   inet_aton("127.0.0.1", &toaddr.sin_addr);
   toaddr.sin_port = htons(atoi(argv[3]));

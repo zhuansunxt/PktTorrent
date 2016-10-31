@@ -28,9 +28,12 @@ void session_init(session_t *s) {
   s->non_local_chunks = NULL;
 }
 
-/* Iterator to tranverse and print lib content */
-int chunk_map_iter(const char* key, char* val, map_t map) {
-  console_log(" ---- <%s, %s>", key, val);
+/**
+ * Iterator to tranverse and print map content.
+ * Only int is allowed, though typed as any_t.
+ */
+int chunk_map_iter(const char* key, any_t val, map_t map) {
+  console_log(" ---- <%s, %d>", key, (intptr_t) val);
   return MAP_OK;
 }
 

@@ -7,6 +7,7 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 #include <assert.h>
 #include "../lib/queue.h"
 
@@ -28,11 +29,11 @@ int main(int argc, char** argv) {
   assert(q->size == 3);
 
   /* test dequeue */
-  assert(strcmp((char*)dequeue(q), q1) == 0);
+  assert(strcmp((const char*)dequeue(q), q1) == 0);
   assert(q->size == 2);
-  assert(strcmp((char*)dequeue(q), q2) == 0);
+  assert(strcmp((const char*)dequeue(q), q2) == 0);
   assert(q->size == 1);
-  assert(strcmp((char*)dequeue(q), q3) == 0);
+  assert(strcmp((const char*)dequeue(q), q3) == 0);
   assert(q->size == 0);
 
   /* test int type */

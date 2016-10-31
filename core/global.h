@@ -14,6 +14,8 @@
 #include "../lib/queue.h"
 #include "../packet/packet.h"
 
+#define HASHSTR_SZ 64
+
 /**
  * State definition for session.
  */

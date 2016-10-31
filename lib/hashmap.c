@@ -165,7 +165,7 @@ unsigned long crc32(const unsigned char *s, unsigned int len)
 /*
  * Hashing function for a string
  */
-unsigned int hashmap_hash_int(hashmap_map * m, char* keystring){
+unsigned int hashmap_hash_int(hashmap_map * m, const char* keystring){
 
     unsigned long key = crc32((unsigned char*)(keystring), strlen(keystring));
 
@@ -189,7 +189,7 @@ unsigned int hashmap_hash_int(hashmap_map * m, char* keystring){
  * Return the integer of the location in data
  * to store the point to the item, or MAP_FULL.
  */
-int hashmap_hash(map_t in, char* key){
+int hashmap_hash(map_t in, const char* key){
 	int curr;
 	int i;
 
@@ -259,7 +259,16 @@ int hashmap_rehash(map_t in){
 /*
  * Add a pointer to the lib with some key
  */
-int hashmap_put(map_t in, char* key, any_t value){
+int hashmap_put(map_t in, const char* key, any_t value) {
+  return _hashmap_put(in, key, value, 1);
+}
+
+/*
+ * Checks if we copies key when it's first met.
+ * Won't copy anyway if key is already in it.
+ * API would make copy_key true, and rehash would make it false.
+ */
+int _hashmap_put(map_t in, const char* key, any_t value, int copy_key_first_time){
 	int index;
 	hashmap_map* m;
 
@@ -277,7 +286,16 @@ int hashmap_put(map_t in, char* key, any_t value){
 
 	/* Set the data */
 	m->data[index].data = value;
-	m->data[index].key = key;
+  // won't copy if
+  // 1. we don't want copy
+  // 2. it's already in use
+  if (!copy_key_first_time || m->data[index].in_use) {
+    m->data[index].key = key;
+  } else {
+    size_t len = strlen(key);
+    m->data[index].key = malloc(len+1);
+    memcpy(m->data[index].key, key, len+1);
+  }
 	m->data[index].in_use = 1;
 	m->size++;
 
@@ -287,7 +305,7 @@ int hashmap_put(map_t in, char* key, any_t value){
 /*
  * Get your pointer out of the lib with a key
  */
-int hashmap_get(map_t in, char* key, any_t *arg){
+int hashmap_get(map_t in, const char* key, any_t *arg){
 	int curr;
 	int i;
 	hashmap_map* m;
@@ -336,7 +354,7 @@ int hashmap_iterate(map_t in, PFany f, any_t args) {
 	/* Linear probing */
 	for(i = 0; i< m->table_size; i++)
 		if(m->data[i].in_use != 0) {
-      char* key = m->data[i].key;
+      const char* key = m->data[i].key;
 			any_t val = (any_t) (m->data[i].data);
 			int status = f(key, val, args);
 			if (status != MAP_OK) {
@@ -350,7 +368,7 @@ int hashmap_iterate(map_t in, PFany f, any_t args) {
 /*
  * Remove an element with that key from the map
  */
-int hashmap_remove(map_t in, char* key){
+int hashmap_remove(map_t in, const char* key){
 	int i;
 	int curr;
 	hashmap_map* m;
@@ -367,6 +385,9 @@ int hashmap_remove(map_t in, char* key){
         int in_use = m->data[curr].in_use;
         if (in_use == 1){
             if (strcmp(m->data[curr].key,key)==0){
+                /* Free key */
+                free(m->data[curr].key);
+
                 /* Blank out the fields */
                 m->data[curr].in_use = 0;
                 m->data[curr].data = NULL;
@@ -384,8 +405,13 @@ int hashmap_remove(map_t in, char* key){
 	return MAP_MISSING;
 }
 
+void _free_keys(const char* key, any_t val, any_t args) {
+  free((void*) key);
+}
+
 /* Deallocate the lib */
 void hashmap_free(map_t in){
+  hashmap_iterate(in, _free_keys, NULL);
 	hashmap_map* m = (hashmap_map*) in;
 	free(m->data);
 	free(m);

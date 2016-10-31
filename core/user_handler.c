@@ -26,17 +26,18 @@ void process_get(char *chunkfile, char *outputfile, g_state_t *g){
 
   while(getline(&line, &len, get_chunk_f) != -1) {
     if (line[0] == '#') continue;
-    char *key = (char*)malloc(8);
-    char *value = (char*)malloc(64);
-    assert(sscanf(line, "%s %s", key, value) != 0);
+    // fmt: id hash
+    // id is value; hash is key
+    char* key = (char*) malloc(HASHSTR_SZ+1);
+    any_t value;
+    assert(sscanf(line, "%ld %s", (intptr_t*) &value, key) != 0);
     hashmap_put(g->g_session->chunk_map, key, value);
-    char *chunk_hash;
     if (hashmap_get(g->g_config->chunks->has_chunk_map,
-                    value, (any_t*)&chunk_hash) == MAP_MISSING) {
+                    key, &value) == MAP_MISSING) {
       g->g_session->state = AWAITING_WHOHAS;
       session_nlchunk_t *nlchunk = (session_nlchunk_t*)malloc(sizeof(session_nlchunk_t));
       assert(nlchunk != NULL);
-      strcpy(nlchunk->chunk_hash, value);
+      strcpy(nlchunk->chunk_hash, key);
       nlchunk->next = g->g_session->non_local_chunks;
       g->g_session->non_local_chunks = nlchunk;
     }
