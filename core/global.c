@@ -45,9 +45,11 @@ void dump_session(session_t *s) {
 }
 
 /* ---------------------- Window related helpers ----------------------*/
-void init_recv_window(g_state_t *g, short peer_id) {
+void init_recv_window(g_state_t *g, short peer_id, const char *chunk) {
   recv_window_t *recv_window = (recv_window_t*)malloc(sizeof(recv_window_t));
 
+  recv_window->state = IDLE;
+  memcpy(recv_window->chunk_hash, chunk, HASH_STR_LEN);
   recv_window->max_window_size = INIT_WINDOW_SIZE;
   recv_window->next_packet_expected = 1;
   int i = 0;

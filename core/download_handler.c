@@ -170,11 +170,18 @@ void process_get_packet(g_state_t *g, packet_t *get_packet, short from) {
  */
 void process_data_packet(g_state_t *g, packet_t *data_packet, short from) {
   if (g->download_conn_pool[from] == NULL) {
-    /* First DATA packet received from this peer.
-     * Establish downloading connection with this peer */
-    init_recv_window(g, from);
-    console_log("Peer %d: ****** Establish new download connection with peer %d ******",
+    console_log("Peer %d: Error! There's no download connection with peer %d",
                 g->g_config->identity, from);
+    return;
+  }
+
+  recv_window_t *window = g->download_conn_pool[from];
+
+  if (window->state == IDLE) {
+    /* First DATA packet received */
+    console_log("Peer %d: Starting to download chunk %s from peer %d",
+                g->g_config->identity, window->chunk_hash, from);
+    window->state = INPROGRESS;
   }
 
   /* Make a local copy of DATA packet. Since argument <data_packet>  will
@@ -182,7 +189,6 @@ void process_data_packet(g_state_t *g, packet_t *data_packet, short from) {
   packet_t* data_packet_copy = pkt_new();
   memcpy(data_packet_copy, data_packet, sizeof(packet_t));
 
-  recv_window_t *window = g->download_conn_pool[from];
   uint32_t seq_number = ntohl(data_packet_copy->hdr->seqn);
   window->buffer[seq_number] = data_packet_copy;
 
@@ -204,9 +210,9 @@ void process_data_packet(g_state_t *g, packet_t *data_packet, short from) {
       /* Received all DATA packets for this chunk */
       packet_t *ack_packet = build_ack_packet(window->next_packet_expected-1);
       send_packet(from, ack_packet, g);
-      console_log("Peer %d: Received all DATA packets from peer %d. Close download connection!",
+      console_log("Peer %d: Received all DATA packets from peer %d",
                     g->g_config->identity, from);
-      /* TODO: assemble all DATA packet to a chunk */
+      window->state = DONE;
       return;
     }
     packet_t *ack_packet = build_ack_packet(window->next_packet_expected-1);
@@ -305,8 +311,8 @@ void do_upload(g_state_t *g) {
         long time_diff = get_time_diff(&curr_time, &(window->timestamp[sent_iter]));
         if(time_diff > g->data_timeout_millsec) {
           /* Timeout detected */
-          console_log("Peer %d: DATA packet with SEQ %u TIME OUT! Resend now...",
-                      g->g_config->identity, sent_iter);
+          console_log("Peer %d: DATA packet with SEQ %u TIME OUT(%ld ms)! Resend now...",
+                      g->g_config->identity, time_diff, sent_iter);
           gettimeofday(&(window->timestamp[sent_iter]), NULL);
           send_packet(i, window->buffer[sent_iter], g);
         }
@@ -327,4 +333,16 @@ void do_upload(g_state_t *g) {
  * @param g Global state.
  */
 void do_download(g_state_t *g) {
+  int i;
+  for (i = 0; i < MAX_PEER_NUM; i++) {
+    if (g->download_conn_pool[i] != NULL) {
+      recv_window_t * recv_window = g->download_conn_pool[i];
+      if (recv_window->state == DONE) {
+        console_log("Peer %d: Closing download connection with peer %d",
+                    g->g_config->identity, i);
+        // TODO(xiaotons): write chunk to local storage system.
+        free_recv_window(g, i);
+      }
+    }
+  }
 }

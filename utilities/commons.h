@@ -18,7 +18,7 @@
 
 #define DEBUG 1
 #define FILE_NAME_LEN 256
-#define HASH_STR_LEN 64
+#define HASH_STR_LEN 41    /* 2*SHA1_HASH_SIZE+1 */
 #define PACKET_LEN 1500
 #define PACKET_TYPE_OFFSET 3
 #define MAX_PEER_NUM 64     /* TODO: figureout the best config of this */

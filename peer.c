@@ -154,6 +154,6 @@ void peer_run(g_state_t * g_state) {
     } // End if (nfds > 0).
 
     do_upload(g_state);
-    //do_download(g_state);
+    do_download(g_state);
   } // End while loop.
 } // End peer_run function

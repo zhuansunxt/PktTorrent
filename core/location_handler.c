@@ -118,9 +118,10 @@ void process_who_has_packet(g_state_t *g, packet_t* wh_packet, short id) {
   unsigned int packet_len = HDRSZ + 4*sizeof(uint8_t) + ihave_chunk_cnt*SHA1_HASH_SIZE;
   ihave_packet->hdr->plen = (uint16_t)htons(packet_len);
 
-  bt_peer_t *p = bt_peer_info(g->g_config, id);
-  spiffy_sendto(g->peer_socket, ihave_packet->raw, ntohs(ihave_packet->hdr->plen),
-                0, (struct sockaddr *)&(p->addr), sizeof(p->addr));
+  /* Send IHAVE packet */
+  send_packet(id, ihave_packet, g);
+  pkt_free(ihave_packet);
+  console_log("Peer %d: Sent IHAVE packet to peer %d", g->g_config->identity, id);
 }
 
 void process_ihave_packet(g_state_t *g, packet_t* ih_packet, short id) {
@@ -147,7 +148,12 @@ void process_ihave_packet(g_state_t *g, packet_t* ih_packet, short id) {
     packet_t *GET_packet = build_get_packet(chunk_hash);
     send_packet(id, GET_packet, g);
     pkt_free(GET_packet);
-    console_log("Sent GET packet to peer %d", id);
+    console_log("Peer %d: Sent GET packet to peer %d", g->g_config->identity, id);
+
+    /* Init downloading connection with corresponding peer */
+    init_recv_window(g, id, chunk_hash);
+    console_log("Peer %d: Initiate download session with peer %d",
+                g->g_config->identity, id);
   }
 
   g->g_session->state = AWAITING_GET;

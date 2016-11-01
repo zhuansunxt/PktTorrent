@@ -25,8 +25,7 @@ typedef enum session_state_enum{
   AWAITING_IHAVE,
   AWAITING_GET,
   AWAITING_DATA,
-  AWAITING_ACK,
-  DONE,
+  AWAITING_ACK
 } session_state_t;
 
 /**
@@ -50,10 +49,18 @@ typedef struct session_s {
   session_nlchunk_t *non_local_chunks;  // list of non-local chunks.
 } session_t;
 
+typedef enum download_state_enum {
+  IDLE,             // after sending GET packet, before first DATA pacekt.
+  INPROGRESS,       // in process of downloading and receiving DATA packet.
+  DONE,             // after receiving all DATA packet.
+} download_state;
+
 /**
  * Window type used by receiver in reliable network transfer.
  */
 typedef struct recv_window_s {
+  char chunk_hash[HASH_STR_LEN];    // chunk that should be download.
+  download_state state;             // downloading connection state.
   packet_t* buffer[MAX_SEQ_NUM+1];  // buffer already received DATA packet.
   size_t max_window_size;           // upper bound on current window size.
   uint32_t next_packet_expected;    // next expected packet's sequence number.
@@ -91,7 +98,7 @@ void session_init(session_t *s);
 void dump_session(session_t *s);
 
 /* Window helper */
-void init_recv_window(g_state_t *g, short peer_id);
+void init_recv_window(g_state_t *g, short peer_id, const char *chunk);
 void free_recv_window(g_state_t *g, short peer_id);
 void init_send_window(g_state_t *g, short peer_id);
 void free_send_window(g_state_t *g, short peer_id);
