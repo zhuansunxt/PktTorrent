@@ -21,6 +21,8 @@ void g_state_init(g_state_t *g) {
     g->upload_conn_pool[i] = NULL;
   for (i = 0; i < MAX_PEER_NUM; i++)
     g->download_conn_pool[i] = NULL;
+
+  g->pending_get_packets = queue_new();
 }
 
 void session_init(session_t *s) {
@@ -70,6 +72,7 @@ void free_recv_window(g_state_t *g, short peer_id) {
 void init_send_window(g_state_t *g, short peer_id) {
   send_window_t *send_window = (send_window_t*)malloc(sizeof(send_window_t));
 
+  // TODO(longqic): congestion ctrl
   send_window->max_window_size = INIT_WINDOW_SIZE;
   send_window->last_packet_acked = 0;
   send_window->last_packet_sent = 0;
@@ -85,5 +88,19 @@ void init_send_window(g_state_t *g, short peer_id) {
 
 void free_send_window(g_state_t *g, short peer_id) {
   free(g->upload_conn_pool[peer_id]);
-  g->download_conn_pool[peer_id] = NULL;
+  g->upload_conn_pool[peer_id] = NULL;
+}
+
+/* ---------------------- Other helpers ------------------------*/
+pending_packet_t* build_pending_packet(packet_t *packet, short to_peer) {
+  pending_packet_t *pending_packet
+          = (pending_packet_t*)malloc(sizeof(pending_packet_t));
+  pending_packet->packet = packet;
+  pending_packet->to_peer = to_peer;
+  return pending_packet;
+}
+
+void free_pending_packet(pending_packet_t* pending_packet) {
+  pkt_free(pending_packet->packet);
+  free(pending_packet);
 }

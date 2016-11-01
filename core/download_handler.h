@@ -22,8 +22,11 @@ packet_t *build_data_packet(unsigned int seq, size_t data_size, char *data);
 void build_chunk_data_packets(const char *chunk_hash, g_state_t *g, short des_peer);
 packet_t *build_ack_packet(unsigned int ack);
 
+/* GET packet fault tolerance */
+void try_send_get_packet(short id, packet_t *packet, g_state_t *g);
+
 /* Network utilities */
-void send_packet(short id, packet_t *get_packet, g_state_t *g);
+void send_packet(short id, packet_t *packet, g_state_t *g);
 
 /* Packet processor */
 void process_get_packet(g_state_t *g, packet_t *get_packet, short from);

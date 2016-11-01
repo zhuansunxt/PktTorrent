@@ -111,6 +111,48 @@ packet_t *build_ack_packet(unsigned int ack) {
 }
 
 /**
+ * Send GET packet to target peer.
+ * If GET packet can not be sent due to concurrency constriction or ongoing connection
+ * conflict, buffer the GET packet to a queue for later re-sending.
+ * @param id target peer id.
+ * @param get_packet GET packet.
+ * @param g global state.
+ * @param chunk_hash SHA1 hash value of chunk to download.
+ */
+void try_send_get_packet(short id, packet_t *get_packet, g_state_t *g) {
+  char chunk_hash[HASH_STR_LEN];
+  hex2ascii(get_packet->payload, SHA1_HASH_SIZE, chunk_hash);
+  console_log("Peer %d: Trying to send GET packet to peer %d on chunk %s...",
+              g->g_config->identity, id, chunk_hash);
+
+  if (g->download_conn_pool[id] == NULL &&
+          g->curr_download_conn_cnt < g->g_config->max_conn) {
+    send_packet(id, get_packet, g);
+    pkt_free(get_packet); // TODO(xiaotons): should store this in case of peer crash.
+    console_log("Peer %d: Sent GET packet to peer %d", g->g_config->identity, id);
+
+    /* Init downloading connection with corresponding peer */
+    init_recv_window(g, id, chunk_hash);
+    g->curr_download_conn_cnt++;
+    gettimeofday(&(g->download_conn_pool[id]->get_timestamp), NULL);    // set timestamp of GET.
+    console_log("Peer %d: Initiate download session with peer %d for chunk %s",
+                g->g_config->identity, id, chunk_hash);
+  } else {
+    if (g->download_conn_pool[id] != NULL) {
+      console_log("Peer %d: Existing downloading connection with peer %d. Queue GET packet",
+                  g->g_config->identity, id);
+    }
+    if (g->curr_download_conn_cnt == g->g_config->max_conn) {
+      console_log("Peer %d: Maximum downloading connections reached! Queue GET packet",
+                  g->g_config->identity);
+    }
+    pending_packet_t *pending_GET_packet = build_pending_packet(get_packet, id);
+    enqueue(g->pending_get_packets, pending_GET_packet);
+  }
+}
+
+
+/**
  * Send GET packet to designated peer.
  * The invoker of this function is the receiver in downloading process.
  * @param id designated peer's id.
@@ -258,12 +300,16 @@ int dup_map_iter(const char* key, any_t val, map_t map) {
  * @param g Global state.
  * @param ack_packet Received ACK packet.
  * @param from Downloading peer's id.
+ * // TODO(longqic): congestion ctrl on DUP ACK.
  */
 void process_ack_packet(g_state_t *g, packet_t *ack_packet, short from) {
   assert(g->upload_conn_pool[from] != NULL);
 
   uint32_t ack_number = htonl(ack_packet->hdr->ackn);
   send_window_t *window = g->upload_conn_pool[from];
+
+  console_log("Peer %d: Received ACK %u from peer %d",
+              g->g_config->identity, ack_number, from);
 
   if (window->dup_ack_map[ack_number] == 0) {
     /* First appearance accumulative ACK.
@@ -279,11 +325,10 @@ void process_ack_packet(g_state_t *g, packet_t *ack_packet, short from) {
                   g->g_config->identity, from);
       free_send_window(g, from);
       g->curr_upload_conn_cnt--;
+      return;
     }
 
     window->dup_ack_map[ack_number] = 1;
-    console_log("Peer %d: Received ACK %u from peer %d",
-                g->g_config->identity, ack_number, from);
     window->last_packet_acked = ack_number;
     window->last_packet_available =
             MIN(window->last_packet_acked + window->max_window_size, MAX_SEQ_NUM);
@@ -312,6 +357,7 @@ void do_upload(g_state_t *g) {
       send_window_t * window= g->upload_conn_pool[i];
 
       /* Check Timeout */
+      // TODO(longqic): timeout
       uint32_t sent_iter = window->last_packet_acked+1;
       struct timeval curr_time;
       for (; sent_iter <= window->last_packet_sent; sent_iter++) {
@@ -320,7 +366,7 @@ void do_upload(g_state_t *g) {
         if(time_diff > g->data_timeout_millsec) {
           /* Timeout detected */
           console_log("Peer %d: DATA packet with SEQ %u TIMEOUT(%ld ms)! Resend now...",
-                      g->g_config->identity, time_diff, sent_iter);
+                      g->g_config->identity, sent_iter, time_diff);
           gettimeofday(&(window->timestamp[sent_iter]), NULL);
           send_packet(i, window->buffer[sent_iter], g);
         }
@@ -329,7 +375,8 @@ void do_upload(g_state_t *g) {
       while (window->last_packet_sent < window->last_packet_available) {
         /* Send packets in range (last_packet_sent, last_packet_available] */
         gettimeofday(&(window->timestamp[window->last_packet_sent+1]), NULL);
-        send_packet(i, window->buffer[++window->last_packet_sent], g);
+        send_packet(i, window->buffer[window->last_packet_sent+1], g);
+        window->last_packet_sent++;
       }
     }
   }
@@ -342,6 +389,8 @@ void do_upload(g_state_t *g) {
  */
 void do_download(g_state_t *g) {
   int i;
+
+  /* Check for done download connection */
   for (i = 0; i < MAX_PEER_NUM; i++) {
     if (g->download_conn_pool[i] != NULL) {
       recv_window_t * recv_window = g->download_conn_pool[i];
@@ -350,8 +399,21 @@ void do_download(g_state_t *g) {
         console_log("Peer %d: Closing download connection with peer %d",
                     g->g_config->identity, i);
         // TODO(xiaotons): write chunk to local storage system.
+
+        g->curr_download_conn_cnt--;
         free_recv_window(g, i);
       }
+    }
+  }
+
+  /* Check for pending GET packet */
+  if (g->pending_get_packets->size > 0) {
+    for (i = 0; i < g->pending_get_packets->size; i++) {
+      pending_packet_t *pending_get_packet =
+              (pending_packet_t*)dequeue(g->pending_get_packets);
+      short des_peer = pending_get_packet->to_peer;
+      /* If sending fails, will re-enqueue this GET packet */
+      try_send_get_packet(des_peer, pending_get_packet->packet, g);
     }
   }
 }

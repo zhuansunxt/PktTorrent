@@ -83,6 +83,15 @@ typedef struct send_window_s {
 } send_window_t;
 
 /**
+ * Packet that can not be sent due to conflict or peer's concurrency limit.
+ * Will be stored for later re-sending.
+ */
+typedef struct pending_packet_s {
+  packet_t* packet;
+  short to_peer;
+} pending_packet_t;
+
+/**
  * Global states shared by all components.
  */
 typedef struct g_state_s {
@@ -90,14 +99,13 @@ typedef struct g_state_s {
   int data_timeout_millsec;             // Estimated timeout threshold.
   int curr_upload_conn_cnt;             // Current upload connection count.
   int curr_download_conn_cnt;           // Current download connection count.
-  int peer_socket;          // socket listener for peers.
-  bt_config_t *g_config;    // configurations.
-  session_t *g_session;     // session state for a single user.
+  int peer_socket;                      // socket listener for peers.
+  bt_config_t *g_config;                // configurations.
+  session_t *g_session;                 // session state for a single user.
   send_window_t * upload_conn_pool[MAX_PEER_NUM];     // pool for downloading connections.
   recv_window_t * download_conn_pool[MAX_PEER_NUM];   // pool for uploading connections.
 
-  /* When a peer can not handle more GET packet. It will cache it for further */
-  queue pending_get_packet;
+  queue *pending_get_packets;              // Pending GET packets.
 } g_state_t;
 
 void g_state_init(g_state_t *g);
@@ -110,4 +118,7 @@ void free_recv_window(g_state_t *g, short peer_id);
 void init_send_window(g_state_t *g, short peer_id);
 void free_send_window(g_state_t *g, short peer_id);
 
+/* Pending packet */
+pending_packet_t* build_pending_packet(packet_t *packet, short to_peer);
+void free_pending_packet(pending_packet_t* pending_packet);
 #endif //PACTORRENT_SESSION_H

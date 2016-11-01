@@ -66,8 +66,7 @@ void broadcast_who_has_packets(g_state_t *g, packet_t* wh_packet) {
   for (peer_iter = g->g_config->peers; peer_iter; peer_iter = peer_iter->next) {
     if (peer_iter->id == g->g_config->identity) continue;
     console_log("Sent packet length: %u", ntohs(wh_packet->hdr->plen));
-    spiffy_sendto(g->peer_socket, wh_packet->raw, ntohs(wh_packet->hdr->plen),
-                  0, (struct sockaddr *)&(peer_iter->addr), sizeof(peer_iter->addr));
+    send_packet(peer_iter->id, wh_packet, g);
 #ifdef DEBUG
     console_log("Peer %d: Sent WHOHAS packet to peer %d", g->g_config->identity, peer_iter->id);
 #endif
@@ -134,9 +133,9 @@ void process_ihave_packet(g_state_t *g, packet_t* ih_packet, short id) {
   uint8_t *chunk_ptr = ih_packet->payload + 4*sizeof(uint8_t);
 
   for (; i < num_of_chunks; i++, chunk_ptr+=SHA1_HASH_SIZE) {
-    char *chunk_hash = (char *)malloc(SHA1_HASH_SIZE*2+1);
+    char *chunk_hash = (char *) malloc(SHA1_HASH_SIZE * 2 + 1);
     hex2ascii(chunk_ptr, SHA1_HASH_SIZE, chunk_hash);
-    chunk_hash[2*SHA1_HASH_SIZE] = '\0';
+    chunk_hash[2 * SHA1_HASH_SIZE] = '\0';
 
     hashmap_put(g->g_session->nlchunk_map,
                 chunk_hash, (any_t) (intptr_t) id);
@@ -146,16 +145,6 @@ void process_ihave_packet(g_state_t *g, packet_t* ih_packet, short id) {
 
     /* Send GET packet to corresponding peer */
     packet_t *GET_packet = build_get_packet(chunk_hash);
-    send_packet(id, GET_packet, g);
-    pkt_free(GET_packet);
-    console_log("Peer %d: Sent GET packet to peer %d", g->g_config->identity, id);
-
-    /* Init downloading connection with corresponding peer */
-    init_recv_window(g, id, chunk_hash);
-    gettimeofday(&(g->download_conn_pool[id]->get_timestamp), NULL);    // set timestamp of GET.
-    console_log("Peer %d: Initiate download session with peer %d",
-                g->g_config->identity, id);
+    try_send_get_packet(id, GET_packet, g);
   }
-
-  g->g_session->state = AWAITING_GET;
 }
