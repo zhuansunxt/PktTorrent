@@ -64,6 +64,7 @@ typedef struct recv_window_s {
   packet_t* buffer[MAX_SEQ_NUM+1];  // buffer already received DATA packet.
   size_t max_window_size;           // upper bound on current window size.
   uint32_t next_packet_expected;    // next expected packet's sequence number.
+  struct timeval get_timestamp;    // for detecting GET packet timeout.
 } recv_window_t;
 
 /**
@@ -85,12 +86,18 @@ typedef struct send_window_s {
  * Global states shared by all components.
  */
 typedef struct g_state_s {
-  int data_timeout_millsec;     // Estimated timeout threshold.
+  int get_timeout_millsec;              // GET packet timeout threshold.
+  int data_timeout_millsec;             // Estimated timeout threshold.
+  int curr_upload_conn_cnt;             // Current upload connection count.
+  int curr_download_conn_cnt;           // Current download connection count.
   int peer_socket;          // socket listener for peers.
   bt_config_t *g_config;    // configurations.
-  session_t *g_session;     // session state.
+  session_t *g_session;     // session state for a single user.
   send_window_t * upload_conn_pool[MAX_PEER_NUM];     // pool for downloading connections.
   recv_window_t * download_conn_pool[MAX_PEER_NUM];   // pool for uploading connections.
+
+  /* When a peer can not handle more GET packet. It will cache it for further */
+  queue pending_get_packet;
 } g_state_t;
 
 void g_state_init(g_state_t *g);

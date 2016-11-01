@@ -152,6 +152,7 @@ void process_ihave_packet(g_state_t *g, packet_t* ih_packet, short id) {
 
     /* Init downloading connection with corresponding peer */
     init_recv_window(g, id, chunk_hash);
+    gettimeofday(&(g->download_conn_pool[id]->get_timestamp), NULL);    // set timestamp of GET.
     console_log("Peer %d: Initiate download session with peer %d",
                 g->g_config->identity, id);
   }

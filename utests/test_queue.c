@@ -10,6 +10,9 @@
 #include <string.h>
 #include <assert.h>
 #include "../lib/queue.h"
+#include "../packet/packet.h"
+#include "../core/download_handler.h"
+#include "../utilities/sha.h"
 
 int main(int argc, char** argv) {
   char *q1 = "q1";
@@ -40,9 +43,33 @@ int main(int argc, char** argv) {
   enqueue(q, i1);
   assert(*((int*)dequeue(q)) == 1);
 
+  /* test packet */
+  char *chunk_hash_1 = "1dddf0fa5abd782bb3e1a661ea307368c522aefd";
+  char *chunk_hash_2 = "1dddf0fa5abd782bb3e1a661ea307368c522aefe";
+  packet_t *get_packet_1 = build_get_packet(chunk_hash_1);
+  packet_t *get_packet_2 = build_get_packet(chunk_hash_2);
+  enqueue(q, get_packet_1);
+  enqueue(q, get_packet_2);
+  assert(q->size == 2);
+
+  packet_t *test;
+  char chunk[HASH_STR_LEN];
+  test = (packet_t*)dequeue(q);
+  hex2ascii(test->payload, SHA1_HASH_SIZE, chunk);
+  assert(!strcmp(chunk_hash_1, chunk));
+  assert(q->size == 1);
+  test = (packet_t*)dequeue(q);
+  hex2ascii(test->payload, SHA1_HASH_SIZE, chunk);
+  assert(!strcmp(chunk_hash_2, chunk));
+  assert(q->size == 0);
+
+  pkt_free(get_packet_1);
+  pkt_free(get_packet_2);
+
   /* test queue_free */
   queue_free(q);
   free(i1);
+
 
   printf("%s succeeds!\n", argv[0]);
   return 0;

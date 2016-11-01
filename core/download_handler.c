@@ -147,17 +147,24 @@ void process_get_packet(g_state_t *g, packet_t *get_packet, short from) {
 
   console_log("Peer %d: received GET packet for chunk %s", g->g_config->identity, chunk_hash);
 
-  if (g->upload_conn_pool[from] == NULL) {
+  if (g->upload_conn_pool[from] == NULL && g->curr_upload_conn_cnt < g->g_config->max_conn) {
     /* Establish new uploading connection with the requesting peer */
     console_log("Peer %d: ****** Establish new upload connection with peer %d ******",
                 g->g_config->identity, from);
     init_send_window(g, from);
+    g->curr_upload_conn_cnt++;
     build_chunk_data_packets(chunk_hash, g, from);
     console_log("Peer %d: DATA packets are built", g->g_config->identity);
   } else {
-    /* There's existing uploading connection with the peer. Reject GET */
-    console_log("Peer %d: Existing upload connection with peer %d, reject GET.",
-                g->g_config->identity, from);
+    if (g->curr_upload_conn_cnt == g->g_config->max_conn) {
+      console_log("Peer %d: Maximum number of uploading connections reached. Reject GET.",
+                  g->g_config->identity);
+    }
+    if (g->upload_conn_pool[from] != NULL) {
+      /* There's existing uploading connection with the peer. Reject GET */
+      console_log("Peer %d: Existing upload connection with peer %d, reject GET.",
+                  g->g_config->identity, from);
+    }
   }
 }
 
@@ -271,6 +278,7 @@ void process_ack_packet(g_state_t *g, packet_t *ack_packet, short from) {
       console_log("Peer %d: Closing uploading connection with peer %d",
                   g->g_config->identity, from);
       free_send_window(g, from);
+      g->curr_upload_conn_cnt--;
     }
 
     window->dup_ack_map[ack_number] = 1;
@@ -311,7 +319,7 @@ void do_upload(g_state_t *g) {
         long time_diff = get_time_diff(&curr_time, &(window->timestamp[sent_iter]));
         if(time_diff > g->data_timeout_millsec) {
           /* Timeout detected */
-          console_log("Peer %d: DATA packet with SEQ %u TIME OUT(%ld ms)! Resend now...",
+          console_log("Peer %d: DATA packet with SEQ %u TIMEOUT(%ld ms)! Resend now...",
                       g->g_config->identity, time_diff, sent_iter);
           gettimeofday(&(window->timestamp[sent_iter]), NULL);
           send_packet(i, window->buffer[sent_iter], g);
@@ -337,6 +345,7 @@ void do_download(g_state_t *g) {
   for (i = 0; i < MAX_PEER_NUM; i++) {
     if (g->download_conn_pool[i] != NULL) {
       recv_window_t * recv_window = g->download_conn_pool[i];
+
       if (recv_window->state == DONE) {
         console_log("Peer %d: Closing download connection with peer %d",
                     g->g_config->identity, i);
