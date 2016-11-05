@@ -40,6 +40,11 @@ void process_get(char *chunkfile, char *outputfile, g_state_t *g){
       strcpy(nlchunk->chunk_hash, key);
       nlchunk->next = g->g_session->non_local_chunks;
       g->g_session->non_local_chunks = nlchunk;
+
+      // Keep record of non-local chunks in a map as well.
+      // For further checking whether all non-local chunks are downloaded in the future.
+      any_t dummy = (any_t) 0;
+      hashmap_put(g->g_session->nlchunk_map, key, dummy);
     }
   }
   free(line);

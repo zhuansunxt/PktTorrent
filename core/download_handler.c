@@ -400,12 +400,16 @@ void do_download(g_state_t *g) {
                     g->g_config->identity, i, recv_window->chunk_hash);
         // TODO(xiaotons): write chunk to local storage system.
 
-        /* Get chunk hash and offset in master-data-file */
-//        char *chunk_hash = recv_window->chunk_hash;
-//        any_t offset;
-
+        // Update global states.
+        hashmap_remove(g->g_session->nlchunk_map, recv_window->chunk_hash);
         g->curr_download_conn_cnt--;
         free_recv_window(g, i);
+        if (hashmap_length(g->g_session->nlchunk_map) == 0) {
+          /* All user requested chunks are ready in local storage */
+          // TODO(xiaotons): assemble user requested chunks to output file.
+          session_free(g->g_session);
+          g->g_session = NULL;
+        }
       }
     }
   }

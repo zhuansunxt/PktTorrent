@@ -113,6 +113,7 @@ typedef struct g_state_s {
 
 void g_state_init(g_state_t *g);
 void session_init(session_t *s);
+void session_free(session_t *s);
 void dump_session(session_t *s);
 
 /* Window helper */

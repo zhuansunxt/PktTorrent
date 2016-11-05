@@ -33,6 +33,18 @@ void session_init(session_t *s) {
   s->non_local_chunks = NULL;
 }
 
+void session_free(session_t *s) {
+  hashmap_free(s->chunk_map);
+  hashmap_free(s->nlchunk_map);
+  session_nlchunk_t *iter = s->non_local_chunks;
+  while (iter) {
+    session_nlchunk_t *temp = iter;
+    iter = iter->next;
+    free(temp);
+  }
+  s->non_local_chunks = NULL;
+}
+
 /**
  * Iterator to tranverse and print map content.
  * Only int is allowed, though typed as any_t.
@@ -43,10 +55,13 @@ int chunk_map_iter(const char* key, any_t val, map_t map) {
 }
 
 void dump_session(session_t *s) {
-  console_log("[Peer's Current Session Info]");
+  console_log("************* Peer's Current Session Info ************");
   console_log(" -- output-file-name: %s", s->output_file);
-  console_log(" -- chunk-requested:");
+  console_log(" -- chunk-requested (%d):", hashmap_length(s->chunk_map));
   hashmap_iterate(s->chunk_map, chunk_map_iter, NULL);
+  console_log(" -- non-local chunks (%d):", hashmap_length(s->nlchunk_map));
+  hashmap_iterate(s->nlchunk_map, chunk_map_iter, NULL);
+  console_log("*******************************************************");
 }
 
 /* ---------------------- Window related helpers ----------------------*/

@@ -138,13 +138,14 @@ void peer_run(g_state_t * g_state) {
       }
 
       /* Request from the user */
-      if (FD_ISSET(STDIN_FILENO, &readfds)) {
+      if (FD_ISSET(STDIN_FILENO, &readfds) && g_state->g_session == NULL) {
         /* Init a session for the user */
         session_t session;
         session_init(&session);
         g_state->g_session = &session;
 
         process_user_input(STDIN_FILENO, userbuf, handle_user_input, "Currently unused", g_state);
+        dump_session(g_state->g_session);
         if (g_state->g_session->state == AWAITING_WHOHAS) {
           ask_peers_who_has(g_state);
         } else {

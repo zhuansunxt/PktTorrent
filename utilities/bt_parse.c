@@ -186,7 +186,7 @@ void bt_parse_chunks_info(bt_config_t *config) {
   strcpy(config->chunks->master_data_file, m_data_file);
   assert(getline(&line, &len, m_chunk_f) != -1);    // omit one line.
   while(getline(&line, &len, m_chunk_f) != -1) {
-    if (line[0] == "#") continue;
+    if (line[0] == '#') continue;
     char *hash_key = (char*)malloc(64);
     any_t chunk_id;
     assert(sscanf(line, "%ld %s", (intptr_t*) &chunk_id, hash_key) != 0);
@@ -232,7 +232,7 @@ void bt_dump_config(bt_config_t *config) {
 }
 
 
-int hash_map_iter(const char* key, any_t val, ) {
+int hash_map_iter(const char* key, any_t val, map_t map) {
   console_log("--- <%s, %d>", key, (intptr_t) val);
   return MAP_OK;
 }
