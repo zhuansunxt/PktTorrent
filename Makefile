@@ -5,17 +5,21 @@ CFLAGS		:= -g -Wall -DDEBUG
 LDFLAGS		:= -lm
 TESTDEFS	:= -DTESTING    # comment this out to disable debugging code
 
-MODULES := lib      \
-	       network  \
-		   packet   \
-		   utilities \
-		   core
+MODULES := lib       \
+	         network   \
+           packet    \
+           utilities \
+           core
 CFLAGS += -I.
 CFLAGS += $(foreach MODULE,$(MODULES),-I$(MODULE))
 
 BINS           := peer client server make_chunks
 #TESTBINS       := test_debug test_input_buffer  # not automatic
-UTESTBINS      := test_hashmap test_packet test_queue test_diff_time
+UTESTBINS      := test_hashmap     \
+									test_io          \
+	                test_packet      \
+									test_queue       \
+									test_diff_time
 
 BUILD     := build
 SRCS_DEP  := $(shell find $(MODULES) -name "*.c")

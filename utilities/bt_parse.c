@@ -232,7 +232,7 @@ void bt_dump_config(bt_config_t *config) {
 }
 
 
-int hash_map_iter(const char* key, any_t val, map_t map) {
+int hash_map_iter(const char* key, any_t val, any_t args) {
   console_log("--- <%s, %d>", key, (intptr_t) val);
   return MAP_OK;
 }
