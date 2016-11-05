@@ -44,9 +44,12 @@ typedef struct session_nlchunks_s {
 typedef struct session_s {
   session_state_t state;                // current state of the session.
   map_t chunk_map;                      // user_requested_chunk -> chunk_id.
+
+  /* Non-local chunks related */
   map_t nlchunk_map;                    // non_local_chunk -> peer owner.
-  char output_file[FILE_NAME_LEN];      // user designated output file path.
   session_nlchunk_t *non_local_chunks;  // list of non-local chunks.
+
+  char output_file[FILE_NAME_LEN];      // user designated output file path.
 } session_t;
 
 typedef enum download_state_enum {

@@ -9,5 +9,5 @@
 
 void assemble_chunks(const char* master_data_file, const map_t* chunk_map,
                      const char* output_file) {
-  // TODO
+
 }

@@ -396,9 +396,13 @@ void do_download(g_state_t *g) {
       recv_window_t * recv_window = g->download_conn_pool[i];
 
       if (recv_window->state == DONE) {
-        console_log("Peer %d: Closing download connection with peer %d",
-                    g->g_config->identity, i);
+        console_log("Peer %d: Closing download connection with peer %d on chunk %s",
+                    g->g_config->identity, i, recv_window->chunk_hash);
         // TODO(xiaotons): write chunk to local storage system.
+
+        /* Get chunk hash and offset in master-data-file */
+//        char *chunk_hash = recv_window->chunk_hash;
+//        any_t offset;
 
         g->curr_download_conn_cnt--;
         free_recv_window(g, i);

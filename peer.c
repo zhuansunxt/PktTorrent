@@ -38,6 +38,7 @@ int main(int argc, char **argv) {
   bt_init(&config, argc, argv);
   bt_parse_command_line(&config);
   g_state.g_config = &config;
+  bt_dump_config(g_state.g_config);
 
   peer_run(&g_state);
   return 0;

@@ -16,7 +16,7 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 
-#include "hashmap.h"
+#include "../lib/hashmap.h"
 
 #define BT_FILENAME_LEN 255
 #define BT_MAX_PEERS 1024
@@ -32,6 +32,7 @@ typedef struct bt_peer_s {
 typedef struct bt_chunks_s {
   char master_data_file[BT_FILENAME_LEN];   // master-data-file path.
   map_t has_chunk_map;                      // chunk --> id.
+  map_t master_chunk_map;                   // chunk --> id.
 } bt_chunks_t;
 
 struct bt_config_s {
@@ -47,7 +48,7 @@ struct bt_config_s {
   /* Global peer info */
   bt_peer_t *peers;
 
-  /* Has-chunk-file info */
+  /* Master-chunk-file info */
   bt_chunks_t *chunks;
 
   /* Peer's own configuration infomations */

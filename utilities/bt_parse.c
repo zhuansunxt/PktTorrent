@@ -176,18 +176,27 @@ void bt_parse_chunks_info(bt_config_t *config) {
 
   config->chunks = (bt_chunks_t*)malloc(sizeof(bt_chunks_t));
 
+
   /* Parse master data file */
+  config->chunks->master_chunk_map = hashmap_new();
   m_chunk_f = fopen(config->chunk_file, "r");
   assert(m_chunk_f != NULL);
   assert(getline(&line, &len, m_chunk_f) != -1);
   assert(sscanf(line, "%s %s", dummy, m_data_file) != 0);
   strcpy(config->chunks->master_data_file, m_data_file);
+  assert(getline(&line, &len, m_chunk_f) != -1);    // omit one line.
+  while(getline(&line, &len, m_chunk_f) != -1) {
+    if (line[0] == "#") continue;
+    char *hash_key = (char*)malloc(64);
+    any_t chunk_id;
+    assert(sscanf(line, "%ld %s", (intptr_t*) &chunk_id, hash_key) != 0);
+    hashmap_put(config->chunks->master_chunk_map, hash_key, chunk_id);
+  }
   fclose(m_chunk_f);
 
   /* Parse has_chunk_file */
   config->chunks->has_chunk_map = hashmap_new();
   has_chunk_f = fopen(config->has_chunk_file, "r");
-  free(line);
   assert(has_chunk_f != NULL);
 
   line = NULL;
@@ -223,7 +232,7 @@ void bt_dump_config(bt_config_t *config) {
 }
 
 
-int hash_map_iter(const char* key, any_t val, map_t map) {
+int hash_map_iter(const char* key, any_t val, ) {
   console_log("--- <%s, %d>", key, (intptr_t) val);
   return MAP_OK;
 }
@@ -231,5 +240,8 @@ int hash_map_iter(const char* key, any_t val, map_t map) {
 void bt_dump_chunkinfo(bt_config_t *config) {
   assert(config != NULL);
   console_log("--- master-data-file: %s", config->chunks->master_data_file);
+  console_log("--- has_chunk_file:");
   hashmap_iterate(config->chunks->has_chunk_map, hash_map_iter, NULL);
+  console_log("--- master_chunk_file:");
+  hashmap_iterate(config->chunks->master_chunk_map, hash_map_iter, NULL);
 }
