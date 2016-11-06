@@ -246,7 +246,7 @@ int hashmap_rehash(map_t in){
         if (curr[i].in_use == 0)
             continue;
 
-		status = hashmap_put(m, curr[i].key, curr[i].data);
+		status = _hashmap_put(m, curr[i].key, curr[i].data, 0);
 		if (status != MAP_OK)
 			return status;
 	}
@@ -268,7 +268,7 @@ int hashmap_put(map_t in, const char* key, any_t value) {
  * Won't copy anyway if key is already in it.
  * API would make copy_key true, and rehash would make it false.
  */
-int _hashmap_put(map_t in, const char* key, any_t value, int copy_key_first_time){
+int _hashmap_put(map_t in, const char* key, any_t value, int copy_key){
 	int index;
 	hashmap_map* m;
 
@@ -285,19 +285,24 @@ int _hashmap_put(map_t in, const char* key, any_t value, int copy_key_first_time
 	}
 
 	/* Set the data */
+  int is_new = !m->data[index].in_use;
 	m->data[index].data = value;
-  // won't copy if
-  // 1. we don't want copy
-  // 2. it's already in use
-  if (!copy_key_first_time || m->data[index].in_use) {
-    m->data[index].key = key;
-  } else {
-    size_t len = strlen(key);
-    m->data[index].key = malloc(len+1);
-    memcpy(m->data[index].key, key, len+1);
+  m->data[index].in_use = 1;
+  m->size += is_new;
+
+  // take care of key when it's a new item
+  if (is_new) {
+    // won't copy if
+    // 1. we don't want copy
+    // 2. it's already in use
+    if (!copy_key) {
+      m->data[index].key = key;
+    } else {
+      size_t len = strlen(key);
+      m->data[index].key = malloc(len+1);
+      memcpy(m->data[index].key, key, len+1);
+    }
   }
-	m->data[index].in_use = 1;
-	m->size++;
 
 	return MAP_OK;
 }
