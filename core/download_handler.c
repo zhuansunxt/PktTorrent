@@ -6,6 +6,9 @@
  */
 
 #include "download_handler.h"
+#include "../utilities/io.h"
+#include "../utilities/bt_parse.h"
+#include <unistd.h>
 
 /**
  * GET packet contains only the chunk hash for the chunk
@@ -62,30 +65,26 @@ packet_t *build_data_packet(unsigned int seq, size_t data_size, char *data) {
 void build_chunk_data_packets(const char *chunk_hash, g_state_t *g, short des_peer) {
   /* Get chunk's offset in master-data-file */
   any_t offset;
-  hashmap_get(g->g_config->chunks->has_chunk_map, chunk_hash, &offset);
+  hashmap_get(g->g_config->chunks->master_chunk_map, chunk_hash, &offset);
   console_log("Building DATA packet for chunk %s with offset %d",
               chunk_hash, (intptr_t) offset);
 
-  int num_of_packet = (CHUNK_SIZE % DATA_PACKET_SIZE) > 0 ?
-                      (CHUNK_SIZE / DATA_PACKET_SIZE)+1 : (CHUNK_SIZE / DATA_PACKET_SIZE);
   int i;
-  FILE *f = fopen(g->g_config->chunk_file, "r");
-  for (i = 0; i < num_of_packet; i++) {
-    unsigned int seq = i+1;
+  FILE *f = fopen(g->g_config->chunks->master_data_file, "r");
+  for (i = 1; i <= MAX_SEQ_NUM; i++) {
     size_t data_size;
-    char data[DATA_PACKET_SIZE];
+    char data[DATA_PACKET_SIZE+1];
 
-    rewind(f);
-    long data_offset = ((intptr_t) offset) * CHUNK_SIZE + i * DATA_PACKET_SIZE;
+    size_t data_offset = ((intptr_t) offset) * CHUNK_SIZE + (i-1) * DATA_PACKET_SIZE;
     fseek(f, data_offset, SEEK_SET);
-    if (i < (num_of_packet-1)) {
+    if (i < MAX_SEQ_NUM) {
       data_size = DATA_PACKET_SIZE;
     } else {
       data_size = CHUNK_SIZE % DATA_PACKET_SIZE;
     }
     fread(data, sizeof(uint8_t), data_size, f);
-    packet_t *data_packet = build_data_packet(seq, data_size, data);
-    g->upload_conn_pool[des_peer]->buffer[seq] = data_packet;
+    packet_t *data_packet = build_data_packet(i, data_size, data);
+    g->upload_conn_pool[des_peer]->buffer[i] = data_packet;
   }
 
   fclose(f);
@@ -236,7 +235,7 @@ void process_data_packet(g_state_t *g, packet_t *data_packet, short from) {
   /* Make a local copy of DATA packet. Since argument <data_packet>  will
    * be freed outside this function */
   packet_t* data_packet_copy = pkt_new();
-  memcpy(data_packet_copy, data_packet, sizeof(packet_t));
+  memcpy(data_packet_copy, data_packet, ntohs(data_packet->hdr->plen));
 
   uint32_t seq_number = ntohl(data_packet_copy->hdr->seqn);
   window->buffer[seq_number] = data_packet_copy;
@@ -398,15 +397,44 @@ void do_download(g_state_t *g) {
       if (recv_window->state == DONE) {
         console_log("Peer %d: Closing download connection with peer %d on chunk %s",
                     g->g_config->identity, i, recv_window->chunk_hash);
-        // TODO(xiaotons): write chunk to local storage system.
+
+        /* Upon finish downloading, write all data packet's payload to master_data_file */
+        any_t m_file_offset;
+        hashmap_get(g->g_session->chunk_map, recv_window->chunk_hash, &m_file_offset);
+        console_log("Peer %d: This chunk's offset in output file is: %ld",
+                    g->g_config->identity, (intptr_t)m_file_offset);
+
+        try_file(g->g_session->output_file);
+        FILE *output_f = fopen(g->g_session->output_file, "r+");
+        int packet_idx;
+        for (packet_idx = 1; packet_idx <= MAX_SEQ_NUM; packet_idx++) {
+          size_t data_size;
+          packet_t *data_packet = recv_window->buffer[packet_idx];
+          size_t w_offset = ((intptr_t) m_file_offset) * CHUNK_SIZE + (packet_idx-1) * DATA_PACKET_SIZE;
+          fseek(output_f, w_offset, SEEK_SET);
+          if (packet_idx == MAX_SEQ_NUM) {
+            data_size = CHUNK_SIZE % DATA_PACKET_SIZE;
+          } else {
+            data_size = DATA_PACKET_SIZE;
+          }
+          fwrite(data_packet->payload, sizeof(uint8_t), data_size, output_f);
+        }
+        fclose(output_f);
 
         // Update global states.
-        hashmap_remove(g->g_session->nlchunk_map, recv_window->chunk_hash);
+        g->g_session->current_nlchunk_cnt--;
         g->curr_download_conn_cnt--;
         free_recv_window(g, i);
-        if (hashmap_length(g->g_session->nlchunk_map) == 0) {
+        dump_session(g->g_session);
+
+        if (g->g_session->current_nlchunk_cnt == 0) {
           /* All user requested chunks are ready in local storage */
-          // TODO(xiaotons): assemble user requested chunks to output file.
+          assemble_chunks(g->g_config->chunks->master_data_file,
+                          g->g_config->chunks->has_chunk_map,
+                          g->g_session->output_file,
+                          g->g_session->chunk_map);
+
+          console_log("[Finish Downloading] File is at %s", g->g_session->output_file);
           session_free(g->g_session);
           g->g_session = NULL;
         }

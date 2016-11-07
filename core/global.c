@@ -29,6 +29,7 @@ void session_init(session_t *s) {
   s->state = NONE;
   s->chunk_map = hashmap_new();
   s->nlchunk_map = hashmap_new();
+  s->current_nlchunk_cnt = 0;
   bzero(s->output_file, FILE_NAME_LEN);
   s->non_local_chunks = NULL;
 }
@@ -61,6 +62,7 @@ void dump_session(session_t *s) {
   hashmap_iterate(s->chunk_map, chunk_map_iter, NULL);
   console_log(" -- non-local chunks (%d):", hashmap_length(s->nlchunk_map));
   hashmap_iterate(s->nlchunk_map, chunk_map_iter, NULL);
+  console_log(" -- currents-nonlocal-chunk-count: %d", s->current_nlchunk_cnt);
   console_log("*******************************************************");
 }
 
@@ -73,13 +75,19 @@ void init_recv_window(g_state_t *g, short peer_id, const char *chunk) {
   recv_window->max_window_size = INIT_WINDOW_SIZE;
   recv_window->next_packet_expected = 1;
   int i = 0;
-  for (; i <= MAX_PEER_NUM; i++)
+  for (; i <= MAX_SEQ_NUM; i++)
     recv_window->buffer[i] = NULL;
 
   g->download_conn_pool[peer_id] = recv_window;
 }
 
 void free_recv_window(g_state_t *g, short peer_id) {
+  int i;
+  for (i = 0; i <= MAX_SEQ_NUM; i++) {
+    if (g->download_conn_pool[peer_id]->buffer[i] != NULL) {
+      pkt_free(g->download_conn_pool[peer_id]->buffer[i]);
+    }
+  }
   free(g->download_conn_pool[peer_id]);
   g->download_conn_pool[peer_id] = NULL;
 }
@@ -93,15 +101,21 @@ void init_send_window(g_state_t *g, short peer_id) {
   send_window->last_packet_sent = 0;
   send_window->last_packet_available = INIT_WINDOW_SIZE;
   int i;
-  for (i = 0; i <= MAX_PEER_NUM; i++)
+  for (i = 0; i <= MAX_SEQ_NUM; i++)
     send_window->buffer[i] = NULL;
-  for (i = 0; i <= MAX_PEER_NUM; i++)
+  for (i = 0; i <= MAX_SEQ_NUM; i++)
     send_window->dup_ack_map[i] = 0;
 
   g->upload_conn_pool[peer_id] = send_window;
 }
 
 void free_send_window(g_state_t *g, short peer_id) {
+  int i;
+  for (i = 0; i <= MAX_SEQ_NUM; i++) {
+    if (g->upload_conn_pool[peer_id]->buffer[i] != NULL) {
+      pkt_free(g->upload_conn_pool[peer_id]->buffer[i]);
+    }
+  }
   free(g->upload_conn_pool[peer_id]);
   g->upload_conn_pool[peer_id] = NULL;
 }

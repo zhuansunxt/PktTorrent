@@ -25,6 +25,7 @@
 #include "core/global.h"
 #include "core/location_handler.h"
 #include "core/handler.h"
+#include "utilities/io.h"
 
 void peer_run(g_state_t *g_state);
 
@@ -149,7 +150,18 @@ void peer_run(g_state_t * g_state) {
         if (g_state->g_session->state == AWAITING_WHOHAS) {
           ask_peers_who_has(g_state);
         } else {
-          console_log("All chunks are accessible locally");
+          console_log("All requested chunks are accessible locally");
+
+          assemble_chunks(g_state->g_config->chunks->master_data_file,
+                          g_state->g_config->chunks->has_chunk_map,
+                          g_state->g_session->output_file,
+                          g_state->g_session->chunk_map);
+
+          console_log("[Finish Downloading] File is at %s", g_state->g_session->output_file);
+
+          /* Clear session. */
+          session_free(g_state->g_session);
+          g_state->g_session = NULL;
         }
       }
 
