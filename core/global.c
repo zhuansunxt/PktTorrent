@@ -29,7 +29,6 @@ void session_init(session_t *s) {
   s->state = NONE;
   s->chunk_map = hashmap_new();
   s->nlchunk_map = hashmap_new();
-  s->current_nlchunk_cnt = 0;
   bzero(s->output_file, FILE_NAME_LEN);
   s->non_local_chunks = NULL;
 }
@@ -62,7 +61,6 @@ void dump_session(session_t *s) {
   hashmap_iterate(s->chunk_map, chunk_map_iter, NULL);
   console_log(" -- non-local chunks (%d):", hashmap_length(s->nlchunk_map));
   hashmap_iterate(s->nlchunk_map, chunk_map_iter, NULL);
-  console_log(" -- currents-nonlocal-chunk-count: %d", s->current_nlchunk_cnt);
   console_log("*******************************************************");
 }
 

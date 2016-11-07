@@ -47,7 +47,6 @@ void process_get(char *chunkfile, char *outputfile, g_state_t *g){
       hashmap_put(g->g_session->nlchunk_map, key, dummy);
     }
   }
-  g->g_session->current_nlchunk_cnt = hashmap_length(g->g_session->nlchunk_map);
   free(line);
   fclose(get_chunk_f);
 

@@ -422,12 +422,12 @@ void do_download(g_state_t *g) {
         fclose(output_f);
 
         // Update global states.
-        g->g_session->current_nlchunk_cnt--;
+        hashmap_remove(g->g_session->nlchunk_map, recv_window->chunk_hash);
         g->curr_download_conn_cnt--;
         free_recv_window(g, i);
         dump_session(g->g_session);
 
-        if (g->g_session->current_nlchunk_cnt == 0) {
+        if (hashmap_length(g->g_session->nlchunk_map) == 0) {
           /* All user requested chunks are ready in local storage */
           assemble_chunks(g->g_config->chunks->master_data_file,
                           g->g_config->chunks->has_chunk_map,

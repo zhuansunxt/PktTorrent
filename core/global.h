@@ -46,7 +46,6 @@ typedef struct session_s {
   map_t chunk_map;                      // user_requested_chunk -> chunk_id.
 
   /* Non-local chunks related */
-  int current_nlchunk_cnt;
   map_t nlchunk_map;                    // non_local_chunk -> peer owner.
   session_nlchunk_t *non_local_chunks;  // list of non-local chunks.
 
