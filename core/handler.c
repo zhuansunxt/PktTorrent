@@ -18,7 +18,7 @@ void process_packet(g_state_t *g, char *buf, short id) {
   packet_t *packet = pkt_new();
   memcpy(packet->raw, buf, HDRSZ);
   uint8_t type = packet->hdr->type;
-  
+
   memcpy(packet->payload, buf+HDRSZ, ntohs(packet->hdr->plen)-HDRSZ);
 
   switch (type) {

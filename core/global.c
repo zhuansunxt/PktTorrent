@@ -5,6 +5,11 @@
  * @author Longqi Cai   <longqic@andrew.cmu.edu>
  */
 
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <sys/time.h>
+#include <unistd.h>
+#include <fcntl.h>
 #include "global.h"
 
 void g_state_init(g_state_t *g) {
@@ -72,11 +77,20 @@ void free_recv_window(g_state_t *g, short peer_id) {
 void init_send_window(g_state_t *g, short peer_id) {
   send_window_t *send_window = (send_window_t*)malloc(sizeof(send_window_t));
 
-  // TODO(longqic): congestion ctrl
-  send_window->max_window_size = INIT_WINDOW_SIZE;
+  send_window->max_window_size = 1;
   send_window->last_packet_acked = 0;
   send_window->last_packet_sent = 0;
-  send_window->last_packet_available = INIT_WINDOW_SIZE;
+  send_window->last_packet_available = 1;
+
+  congctrl_t* cc = &send_window->cc;
+  cc->state = SLOW_START;
+  cc->cwnd = 1;
+  cc->ssthresh = SSTHRESH;
+  cc->fd = open(CC_LOG, O_CREAT|O_WRONLY|O_APPEND);
+  cc->sender = g->g_config->identity;
+  cc->recver = peer_id;
+  gettimeofday(&cc->start, NULL);
+
   int i;
   for (i = 0; i <= MAX_PEER_NUM; i++)
     send_window->buffer[i] = NULL;
@@ -87,6 +101,8 @@ void init_send_window(g_state_t *g, short peer_id) {
 }
 
 void free_send_window(g_state_t *g, short peer_id) {
+  send_window_t* window = g->upload_conn_pool[peer_id];
+  close(window->cc.fd);
   free(g->upload_conn_pool[peer_id]);
   g->upload_conn_pool[peer_id] = NULL;
 }

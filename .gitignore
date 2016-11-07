@@ -5,6 +5,8 @@ user_file/*
 
 build
 
+problem2-peer.txt
+
 *.o
 *.dSYM
 make-chunks

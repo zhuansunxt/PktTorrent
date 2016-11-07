@@ -5,6 +5,10 @@
  * @author Longqi Cai   <longqic@andrew.cmu.edu>
  */
 
+#include <sys/file.h>
+#include <assert.h>
+#include <time.h>
+#include <unistd.h>
 #include "download_handler.h"
 
 /**
@@ -300,7 +304,6 @@ int dup_map_iter(const char* key, any_t val, map_t map) {
  * @param g Global state.
  * @param ack_packet Received ACK packet.
  * @param from Downloading peer's id.
- * // TODO(longqic): congestion ctrl on DUP ACK.
  */
 void process_ack_packet(g_state_t *g, packet_t *ack_packet, short from) {
   assert(g->upload_conn_pool[from] != NULL);
@@ -332,6 +335,21 @@ void process_ack_packet(g_state_t *g, packet_t *ack_packet, short from) {
     window->last_packet_acked = ack_number;
     window->last_packet_available =
             MIN(window->last_packet_acked + window->max_window_size, MAX_SEQ_NUM);
+
+    /* Congestion Control */
+    congctrl_t* cc = &window->cc;
+    if (cc->state == SLOW_START) {
+      cc->cwnd += 1;
+      window->max_window_size = (size_t) cc->cwnd;
+      if (cc->cwnd >= cc->ssthresh) {
+        cc->state = CONG_AVOID;
+      }
+    } else {
+      cc->cwnd += 1 / cc->cwnd;
+      window->max_window_size = (size_t) cc->cwnd;
+    }
+    cc_log(cc);
+
   } else if (window->dup_ack_map[ack_number] == 1) {
     window->dup_ack_map[ack_number] = 2;
   } else if (window->dup_ack_map[ack_number] == 2) {
@@ -340,8 +358,18 @@ void process_ack_packet(g_state_t *g, packet_t *ack_packet, short from) {
     console_log("Peer %d: Received DUP ACK %u from peer %d",
                 g->g_config->identity, ack_number, from);
     send_packet(from, window->buffer[ack_number + 1], g);
+
+    /* Congestion Control */
+    congctrl_t* cc = &window->cc;
+    cc->state = SLOW_START;
+    cc->ssthresh = MAX(2, cc->cwnd/2);
+    cc->cwnd = 1;
+    window->max_window_size = 1;
+    cc_log(cc);
+
   } else {
     /* Control should never reach here */
+    assert(0);
   }
 }
 
@@ -357,7 +385,6 @@ void do_upload(g_state_t *g) {
       send_window_t * window= g->upload_conn_pool[i];
 
       /* Check Timeout */
-      // TODO(longqic): timeout
       uint32_t sent_iter = window->last_packet_acked+1;
       struct timeval curr_time;
       for (; sent_iter <= window->last_packet_sent; sent_iter++) {
@@ -369,6 +396,14 @@ void do_upload(g_state_t *g) {
                       g->g_config->identity, sent_iter, time_diff);
           gettimeofday(&(window->timestamp[sent_iter]), NULL);
           send_packet(i, window->buffer[sent_iter], g);
+
+          /* Congestion Control */
+          congctrl_t* cc = &window->cc;
+          cc->state = SLOW_START;
+          cc->ssthresh = MAX(2, cc->cwnd/2);
+          cc->cwnd = 1;
+          window->max_window_size = 1;
+          cc_log(cc);
         }
       }
 
@@ -420,4 +455,25 @@ void do_download(g_state_t *g) {
       try_send_get_packet(des_peer, pending_get_packet->packet, g);
     }
   }
+}
+
+/**
+ * @brief Congestion control related log.
+ * @param fd File descriptor of the log file.
+ * @param sender Sender id.
+ * @param recver Receiver id.
+ * @param sz Current window size.
+ */
+void cc_log(congctrl_t* cc) {
+  static char line[CC_LOG_LINESZ+1];
+  static struct timeval now;
+  gettimeofday(&now, NULL);
+
+  flock(cc->fd, LOCK_EX);
+  int linesz = snprintf(line, CC_LOG_LINESZ, "%hi->%hi\t%li\t%f\n",
+                        cc->sender, cc->recver,
+                        get_time_diff(&now, &cc->start),
+                        cc->cwnd);
+  write(cc->fd, line, linesz);
+  flock(cc->fd, LOCK_UN);
 }

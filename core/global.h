@@ -15,6 +15,7 @@
 #include "../packet/packet.h"
 
 #define HASHSTR_SZ 64
+#define CC_LOG "problem2-peer.txt"
 
 /**
  * State definition for session.
@@ -71,6 +72,30 @@ typedef struct recv_window_s {
 } recv_window_t;
 
 /**
+ * Congestion control related states.
+ */
+
+// init ssthresh
+#define SSTHRESH 64
+
+typedef enum cong_e {
+  SLOW_START=1,
+  CONG_AVOID,
+} cong_t;
+
+typedef struct congctrl_s {
+  cong_t state;
+  /* cwnd is the float version of window->max_window_size.
+   * Whenever cwnd is updated, max_window_size should also be updated. */
+  float cwnd;
+  float ssthresh;
+  int fd;                // fd to the log
+  short sender;          // sender id
+  short recver;          // recver id
+  struct timeval start;  // starting time of the current connection
+} congctrl_t;
+
+/**
  * Window type used by sender in reliable network transfer.
  * The difference agains recv_window_t is it contains congestion
  * control mechanism.
@@ -83,6 +108,7 @@ typedef struct send_window_s {
   uint32_t last_packet_available;   // serves as window boundary.
   uint8_t dup_ack_map[MAX_SEQ_NUM+1];   // keep track of duplicate ACK.
   struct timeval timestamp[MAX_SEQ_NUM+1]; // Timer for each DATA packet.
+  congctrl_t cc;                    // congestion control.
 } send_window_t;
 
 /**

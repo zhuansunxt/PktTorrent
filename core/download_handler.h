@@ -16,6 +16,8 @@
 #include "../utilities/chunk.h"
 #include "../utilities/sha.h"
 
+#define CC_LOG_LINESZ 1024
+
 /* Packet builder */
 packet_t *build_get_packet(const char *chunk_hash);
 packet_t *build_data_packet(unsigned int seq, size_t data_size, char *data);
@@ -36,5 +38,8 @@ void process_ack_packet(g_state_t *g, packet_t *ack_packet, short from);
 /* Upload and Download handler */
 void do_upload(g_state_t *g);
 void do_download(g_state_t *g);
+
+/* Congestion control log */
+void cc_log(congctrl_t* cc);
 
 #endif //PACTORRENT_DOWNLOAD_HANDLER_H
