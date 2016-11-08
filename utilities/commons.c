@@ -26,3 +26,11 @@ long get_time_diff(struct timeval *t1, struct timeval *t2) {
 
   return diff;
 }
+
+/* Create file if it does not exist given file path */
+void try_file(const char *path) {
+  if (access(path, F_OK) == -1) {
+    FILE *f = fopen(path, "a+");
+    fclose(f);
+  }
+}

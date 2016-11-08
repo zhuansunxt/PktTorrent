@@ -137,8 +137,14 @@ void process_ihave_packet(g_state_t *g, packet_t* ih_packet, short id) {
     hex2ascii(chunk_ptr, SHA1_HASH_SIZE, chunk_hash);
     chunk_hash[2 * SHA1_HASH_SIZE] = '\0';
 
-    hashmap_put(g->g_session->nlchunk_map,
-                chunk_hash, (any_t) (intptr_t) id);
+    /* Check if there's existing download connection for this chunk.
+     * If so, discard this IHAVE packet. */
+    int d_iter;
+    for (d_iter = 1; d_iter <= MAX_PEER_NUM; d_iter++) {
+      if (g->download_conn_pool[d_iter] != NULL &&
+              !strcmp(g->download_conn_pool[d_iter]->chunk_hash, chunk_hash))
+        continue;
+    }
 
     console_log("Peer %d: Peer %d has chunk %s",
                 g->g_config->identity, id, chunk_hash);

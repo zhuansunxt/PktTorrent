@@ -38,6 +38,18 @@ void session_init(session_t *s) {
   s->non_local_chunks = NULL;
 }
 
+void session_free(session_t *s) {
+  hashmap_free(s->chunk_map);
+  hashmap_free(s->nlchunk_map);
+  session_nlchunk_t *iter = s->non_local_chunks;
+  while (iter) {
+    session_nlchunk_t *temp = iter;
+    iter = iter->next;
+    free(temp);
+  }
+  s->non_local_chunks = NULL;
+}
+
 /**
  * Iterator to tranverse and print map content.
  * Only int is allowed, though typed as any_t.
@@ -48,10 +60,13 @@ int chunk_map_iter(const char* key, any_t val, map_t map) {
 }
 
 void dump_session(session_t *s) {
-  console_log("[Peer's Current Session Info]");
+  console_log("************* Peer's Current Session Info ************");
   console_log(" -- output-file-name: %s", s->output_file);
-  console_log(" -- chunk-requested:");
+  console_log(" -- chunk-requested (%d):", hashmap_length(s->chunk_map));
   hashmap_iterate(s->chunk_map, chunk_map_iter, NULL);
+  console_log(" -- non-local chunks (%d):", hashmap_length(s->nlchunk_map));
+  hashmap_iterate(s->nlchunk_map, chunk_map_iter, NULL);
+  console_log("*******************************************************");
 }
 
 /* ---------------------- Window related helpers ----------------------*/
@@ -63,13 +78,19 @@ void init_recv_window(g_state_t *g, short peer_id, const char *chunk) {
   recv_window->max_window_size = INIT_WINDOW_SIZE;
   recv_window->next_packet_expected = 1;
   int i = 0;
-  for (; i <= MAX_PEER_NUM; i++)
+  for (; i <= MAX_SEQ_NUM; i++)
     recv_window->buffer[i] = NULL;
 
   g->download_conn_pool[peer_id] = recv_window;
 }
 
 void free_recv_window(g_state_t *g, short peer_id) {
+  int i;
+  for (i = 0; i <= MAX_SEQ_NUM; i++) {
+    if (g->download_conn_pool[peer_id]->buffer[i] != NULL) {
+      pkt_free(g->download_conn_pool[peer_id]->buffer[i]);
+    }
+  }
   free(g->download_conn_pool[peer_id]);
   g->download_conn_pool[peer_id] = NULL;
 }
@@ -92,17 +113,26 @@ void init_send_window(g_state_t *g, short peer_id) {
   gettimeofday(&cc->start, NULL);
 
   int i;
-  for (i = 0; i <= MAX_PEER_NUM; i++)
+  for (i = 0; i <= MAX_SEQ_NUM; i++)
     send_window->buffer[i] = NULL;
-  for (i = 0; i <= MAX_PEER_NUM; i++)
+  for (i = 0; i <= MAX_SEQ_NUM; i++)
     send_window->dup_ack_map[i] = 0;
 
   g->upload_conn_pool[peer_id] = send_window;
 }
 
 void free_send_window(g_state_t *g, short peer_id) {
+
   send_window_t* window = g->upload_conn_pool[peer_id];
   close(window->cc.fd);
+
+  int i;
+  for (i = 0; i <= MAX_SEQ_NUM; i++) {
+    if (g->upload_conn_pool[peer_id]->buffer[i] != NULL) {
+      pkt_free(g->upload_conn_pool[peer_id]->buffer[i]);
+    }
+  }
+
   free(g->upload_conn_pool[peer_id]);
   g->upload_conn_pool[peer_id] = NULL;
 }
