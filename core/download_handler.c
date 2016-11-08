@@ -386,6 +386,7 @@ void do_upload(g_state_t *g) {
       /* Check Timeout */
       uint32_t sent_iter = window->last_packet_acked+1;
       struct timeval curr_time;
+      // TODO: what if window size gets smaller?
       for (; sent_iter <= window->last_packet_sent; sent_iter++) {
         gettimeofday(&curr_time, NULL);
         long time_diff = get_time_diff(&curr_time, &(window->timestamp[sent_iter]));
