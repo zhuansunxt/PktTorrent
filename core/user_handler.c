@@ -17,6 +17,8 @@ void process_get(char *chunkfile, char *outputfile, g_state_t *g){
   size_t len;
 
   strcpy(g->g_session->output_file, outputfile);
+  char *temp_output_name = "tmp.output";
+  strcpy(g->g_session->temp_output_file, temp_output_name);
 
   get_chunk_f = fopen(chunkfile, "r");
   if (get_chunk_f == NULL) {

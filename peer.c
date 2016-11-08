@@ -154,9 +154,10 @@ void peer_run(g_state_t * g_state) {
 
           assemble_chunks(g_state->g_config->chunks->master_data_file,
                           g_state->g_config->chunks->has_chunk_map,
-                          g_state->g_session->output_file,
+                          g_state->g_session->temp_output_file,
                           g_state->g_session->chunk_map);
 
+          rename(g_state->g_session->temp_output_file, g_state->g_session->output_file);
           console_log("[Finish Downloading] File is at %s", g_state->g_session->output_file);
 
           /* Clear session. */

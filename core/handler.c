@@ -38,13 +38,13 @@ void process_packet(g_state_t *g, char *buf, short id) {
       process_get_packet(g, packet, id);
       break;
     case 3:
-      console_log("Peer %d: Receiving DATA packet from peer %d",
-                  g->g_config->identity, id);
+//      console_log("Peer %d: Receiving DATA packet from peer %d",
+//                  g->g_config->identity, id);
       process_data_packet(g, packet, id);
       break;
     case 4:
-      console_log("Peer %d: Receiving ACK packet from peer %d",
-                  g->g_config->identity, id);
+//      console_log("Peer %d: Receiving ACK packet from peer %d",
+//                  g->g_config->identity, id);
       process_ack_packet(g, packet, id);
       break;
     case 5:

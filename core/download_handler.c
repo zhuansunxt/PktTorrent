@@ -121,8 +121,8 @@ packet_t *build_ack_packet(unsigned int ack) {
 void try_send_get_packet(short id, packet_t *get_packet, g_state_t *g) {
   char chunk_hash[HASH_STR_LEN];
   hex2ascii(get_packet->payload, SHA1_HASH_SIZE, chunk_hash);
-  console_log("Peer %d: Trying to send GET packet to peer %d on chunk %s...",
-              g->g_config->identity, id, chunk_hash);
+//  console_log("Peer %d: Trying to send GET packet to peer %d on chunk %s...",
+//              g->g_config->identity, id, chunk_hash);
 
   if (g->download_conn_pool[id] == NULL &&
           g->curr_download_conn_cnt < g->g_config->max_conn) {
@@ -138,12 +138,12 @@ void try_send_get_packet(short id, packet_t *get_packet, g_state_t *g) {
                 g->g_config->identity, id, chunk_hash);
   } else {
     if (g->download_conn_pool[id] != NULL) {
-      console_log("Peer %d: Existing downloading connection with peer %d. Queue GET packet",
-                  g->g_config->identity, id);
+//      console_log("Peer %d: Existing downloading connection with peer %d. Queue GET packet",
+//                  g->g_config->identity, id);
     }
     if (g->curr_download_conn_cnt == g->g_config->max_conn) {
-      console_log("Peer %d: Maximum downloading connections reached! Queue GET packet",
-                  g->g_config->identity);
+//      console_log("Peer %d: Maximum downloading connections reached! Queue GET packet",
+//                  g->g_config->identity);
     }
     pending_packet_t *pending_GET_packet = build_pending_packet(get_packet, id);
     enqueue(g->pending_get_packets, pending_GET_packet);
@@ -265,8 +265,8 @@ void process_data_packet(g_state_t *g, packet_t *data_packet, short from) {
     }
     packet_t *ack_packet = build_ack_packet(window->next_packet_expected-1);
     send_packet(from, ack_packet, g);
-    console_log("Peer %d: Sent ACK %u back to peer %d",
-                g->g_config->identity, window->next_packet_expected-1, from);
+//    console_log("Peer %d: Sent ACK %u back to peer %d",
+//                g->g_config->identity, window->next_packet_expected-1, from);
   } else if (seq_number > window->next_packet_expected){
 
     /* Upon receiving packet whose SEQ is larger than next_packet_expected,
@@ -307,8 +307,8 @@ void process_ack_packet(g_state_t *g, packet_t *ack_packet, short from) {
   uint32_t ack_number = htonl(ack_packet->hdr->ackn);
   send_window_t *window = g->upload_conn_pool[from];
 
-  console_log("Peer %d: Received ACK %u from peer %d",
-              g->g_config->identity, ack_number, from);
+//  console_log("Peer %d: Received ACK %u from peer %d",
+//              g->g_config->identity, ack_number, from);
 
   if (window->dup_ack_map[ack_number] == 0) {
     /* First appearance accumulative ACK.
@@ -404,8 +404,8 @@ void do_download(g_state_t *g) {
         console_log("Peer %d: This chunk's offset in output file is: %ld",
                     g->g_config->identity, (intptr_t)m_file_offset);
 
-        try_file(g->g_session->output_file);
-        FILE *output_f = fopen(g->g_session->output_file, "r+");
+        try_file(g->g_session->temp_output_file);
+        FILE *output_f = fopen(g->g_session->temp_output_file, "r+");
         int packet_idx;
         for (packet_idx = 1; packet_idx <= MAX_SEQ_NUM; packet_idx++) {
           size_t data_size;
@@ -431,9 +431,10 @@ void do_download(g_state_t *g) {
           /* All user requested chunks are ready in local storage */
           assemble_chunks(g->g_config->chunks->master_data_file,
                           g->g_config->chunks->has_chunk_map,
-                          g->g_session->output_file,
+                          g->g_session->temp_output_file,
                           g->g_session->chunk_map);
 
+          rename(g->g_session->temp_output_file, g->g_session->output_file);
           console_log("[Finish Downloading] File is at %s", g->g_session->output_file);
           session_free(g->g_session);
           g->g_session = NULL;

@@ -50,6 +50,7 @@ typedef struct session_s {
   session_nlchunk_t *non_local_chunks;  // list of non-local chunks.
 
   char output_file[FILE_NAME_LEN];      // user designated output file path.
+  char temp_output_file[FILE_NAME_LEN];
 } session_t;
 
 typedef enum download_state_enum {
