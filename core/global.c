@@ -8,8 +8,8 @@
 #include "global.h"
 
 void g_state_init(g_state_t *g) {
-  g->get_timeout_millsec = 5000;     // TODO: reason about this value.
-  g->data_timeout_millsec = 3000;    // TODO: do RTT estimation.
+  g->crash_timeout_millsec = 10000;     // TODO: reason about this value.
+  g->data_timeout_millsec = 3000;     // TODO: do RTT estimation.
   g->curr_upload_conn_cnt = 0;
   g->curr_download_conn_cnt = 0;
   g->peer_socket = -1;
@@ -73,6 +73,7 @@ void init_recv_window(g_state_t *g, short peer_id, const char *chunk) {
   memcpy(recv_window->chunk_hash, chunk, HASH_STR_LEN);
   recv_window->max_window_size = INIT_WINDOW_SIZE;
   recv_window->next_packet_expected = 1;
+  gettimeofday(&(recv_window->last_datapac_recvd), NULL);     // init timer for data packet.
   int i = 0;
   for (; i <= MAX_SEQ_NUM; i++)
     recv_window->buffer[i] = NULL;

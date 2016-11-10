@@ -8,6 +8,7 @@
 #include "download_handler.h"
 #include "../utilities/io.h"
 #include "../utilities/bt_parse.h"
+#include "location_handler.h"
 #include <unistd.h>
 
 /**
@@ -133,7 +134,6 @@ void try_send_get_packet(short id, packet_t *get_packet, g_state_t *g) {
     /* Init downloading connection with corresponding peer */
     init_recv_window(g, id, chunk_hash);
     g->curr_download_conn_cnt++;
-    gettimeofday(&(g->download_conn_pool[id]->get_timestamp), NULL);    // set timestamp of GET.
     console_log("Peer %d: Initiate download session with peer %d for chunk %s",
                 g->g_config->identity, id, chunk_hash);
   } else {
@@ -224,6 +224,7 @@ void process_data_packet(g_state_t *g, packet_t *data_packet, short from) {
   }
 
   recv_window_t *window = g->download_conn_pool[from];
+  gettimeofday(&(window->last_datapac_recvd), NULL);      // updates crash-timeout.
 
   if (window->state == IDLE) {
     /* First DATA packet received */
@@ -265,8 +266,8 @@ void process_data_packet(g_state_t *g, packet_t *data_packet, short from) {
     }
     packet_t *ack_packet = build_ack_packet(window->next_packet_expected-1);
     send_packet(from, ack_packet, g);
-//    console_log("Peer %d: Sent ACK %u back to peer %d",
-//                g->g_config->identity, window->next_packet_expected-1, from);
+    console_log("Peer %d: Sent ACK %u back to peer %d",
+                g->g_config->identity, window->next_packet_expected-1, from);
   } else if (seq_number > window->next_packet_expected){
 
     /* Upon receiving packet whose SEQ is larger than next_packet_expected,
@@ -389,11 +390,34 @@ void do_upload(g_state_t *g) {
 void do_download(g_state_t *g) {
   int i;
 
-  /* Check for done download connection */
   for (i = 0; i < MAX_PEER_NUM; i++) {
     if (g->download_conn_pool[i] != NULL) {
       recv_window_t * recv_window = g->download_conn_pool[i];
 
+      /* Check for DATA packet timeout */
+      struct timeval curr_time;
+      gettimeofday(&curr_time, NULL);
+      long time_diff = get_time_diff(&curr_time, &(recv_window->last_datapac_recvd));
+      if (time_diff > g->crash_timeout_millsec) {
+        console_log("Peer %d: peer %d probably dies (crash timeout %ld ms)! Should reflooding WHOHAS packet",
+                    g->g_config->identity, i, time_diff);
+
+        /* identify lost chunk. */
+        session_nlchunk_t *lost_chunk = (session_nlchunk_t*)malloc(sizeof(session_nlchunk_t));
+        strcpy(lost_chunk->chunk_hash, recv_window->chunk_hash);
+        lost_chunk->next = NULL;
+
+        /* tear down download connection with crashed peers */
+        hashmap_remove(g->g_session->nlchunk_located, recv_window->chunk_hash);
+        g->curr_download_conn_cnt--;
+        free_recv_window(g, i);
+
+        /* re-flood WHOHAS packet for all peers */
+        ask_peers_who_has(g, lost_chunk);
+      }
+
+
+      /* Check for done download connection */
       if (recv_window->state == DONE) {
         console_log("Peer %d: Closing download connection with peer %d on chunk %s",
                     g->g_config->identity, i, recv_window->chunk_hash);
@@ -422,6 +446,7 @@ void do_download(g_state_t *g) {
         fclose(output_f);
 
         // Update global states.
+        hashmap_remove(g->g_session->nlchunk_located, recv_window->chunk_hash);
         hashmap_remove(g->g_session->nlchunk_map, recv_window->chunk_hash);
         g->curr_download_conn_cnt--;
         free_recv_window(g, i);

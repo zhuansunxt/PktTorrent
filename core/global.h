@@ -21,7 +21,7 @@
  */
 typedef enum session_state_enum{
   NONE,
-  AWAITING_WHOHAS,
+  AWAITING_WHOHAS
 } session_state_t;
 
 /**
@@ -65,7 +65,7 @@ typedef struct recv_window_s {
   packet_t* buffer[MAX_SEQ_NUM+1];  // buffer already received DATA packet.
   size_t max_window_size;           // upper bound on current window size.
   uint32_t next_packet_expected;    // next expected packet's sequence number.
-  struct timeval get_timestamp;    // for detecting GET packet timeout.
+  struct timeval last_datapac_recvd;      // for detecting crashed peers.
 } recv_window_t;
 
 /**
@@ -96,7 +96,7 @@ typedef struct pending_packet_s {
  * Global states shared by all components.
  */
 typedef struct g_state_s {
-  int get_timeout_millsec;              // GET packet timeout threshold.
+  int crash_timeout_millsec;              // GET packet timeout threshold.
   int data_timeout_millsec;             // Estimated timeout threshold.
   int curr_upload_conn_cnt;             // Current upload connection count.
   int curr_download_conn_cnt;           // Current download connection count.
