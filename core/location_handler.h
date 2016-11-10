@@ -13,9 +13,9 @@
 #include "global.h"
 #include "download_handler.h"
 
-void ask_peers_who_has(g_state_t *g);
+void ask_peers_who_has(g_state_t *g, session_nlchunk_t* nl_chunks);
 void broadcast_who_has_packets(g_state_t *g, packet_t* wh_packet);
-packet_t* build_who_has_packet(g_state_t *g);
+packet_t* build_who_has_packet(session_nlchunk_t *nl_chunks);
 void process_who_has_packet(g_state_t *g, packet_t* wh_packet, short id);
 void process_ihave_packet(g_state_t *g, packet_t* ih_packet, short id);
 

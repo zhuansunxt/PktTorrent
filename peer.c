@@ -148,7 +148,7 @@ void peer_run(g_state_t * g_state) {
         process_user_input(STDIN_FILENO, userbuf, handle_user_input, "Currently unused", g_state);
         dump_session(g_state->g_session);
         if (g_state->g_session->state == AWAITING_WHOHAS) {
-          ask_peers_who_has(g_state);
+          ask_peers_who_has(g_state, g_state->g_session->non_local_chunks);
         } else {
           console_log("All requested chunks are accessible locally");
 
