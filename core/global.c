@@ -109,7 +109,7 @@ void init_send_window(g_state_t *g, short peer_id) {
   cc->state = SLOW_START;
   cc->cwnd = 1;
   cc->ssthresh = SSTHRESH;
-  cc->fd = open(CC_LOG, O_CREAT|O_WRONLY|O_APPEND);
+  cc->fd = open(CC_LOG, O_CREAT|O_WRONLY|O_APPEND, 0640);
   cc->sender = g->g_config->identity;
   cc->recver = peer_id;
   gettimeofday(&cc->start, NULL);

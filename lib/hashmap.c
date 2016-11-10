@@ -26,6 +26,10 @@ typedef struct _hashmap_map {
 	hashmap_element *data;
 } hashmap_map;
 
+// internal function
+int _hashmap_put(map_t in, const char* key, any_t value, int copy_key);
+int _free_keys(const char* key, any_t val, any_t args);
+
 /*
  * Return an empty lib, or NULL on failure.
  */
@@ -296,7 +300,7 @@ int _hashmap_put(map_t in, const char* key, any_t value, int copy_key){
     // 1. we don't want copy
     // 2. it's already in use
     if (!copy_key) {
-      m->data[index].key = key;
+      m->data[index].key = (char*) key;
     } else {
       size_t len = strlen(key);
       m->data[index].key = malloc(len+1);
@@ -410,8 +414,9 @@ int hashmap_remove(map_t in, const char* key){
 	return MAP_MISSING;
 }
 
-void _free_keys(const char* key, any_t val, any_t args) {
+int _free_keys(const char* key, any_t val, any_t args) {
   free((void*) key);
+  return MAP_OK;
 }
 
 /* Deallocate the lib */

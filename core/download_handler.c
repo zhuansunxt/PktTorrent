@@ -387,7 +387,9 @@ void do_upload(g_state_t *g) {
       /* Check Timeout */
       uint32_t sent_iter = window->last_packet_acked+1;
       struct timeval curr_time;
-      for (; sent_iter <= window->last_packet_sent; sent_iter++) {
+      uint32_t ub = MIN(window->last_packet_sent,
+                        window->last_packet_acked+window->max_window_size);
+      for (; sent_iter <= ub; sent_iter++) {
         gettimeofday(&curr_time, NULL);
         long time_diff = get_time_diff(&curr_time, &(window->timestamp[sent_iter]));
         if(time_diff > g->data_timeout_millsec) {
@@ -404,6 +406,7 @@ void do_upload(g_state_t *g) {
           cc->cwnd = 1;
           window->max_window_size = 1;
           cc_log(cc);
+          break;
         }
       }
 
