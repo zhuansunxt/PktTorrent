@@ -22,11 +22,7 @@
  */
 typedef enum session_state_enum{
   NONE,
-  AWAITING_WHOHAS,
-  AWAITING_IHAVE,
-  AWAITING_GET,
-  AWAITING_DATA,
-  AWAITING_ACK
+  AWAITING_WHOHAS
 } session_state_t;
 
 /**
@@ -47,10 +43,12 @@ typedef struct session_s {
   map_t chunk_map;                      // user_requested_chunk -> chunk_id.
 
   /* Non-local chunks related */
+  map_t nlchunk_located;
   map_t nlchunk_map;                    // non_local_chunk -> peer owner.
   session_nlchunk_t *non_local_chunks;  // list of non-local chunks.
 
   char output_file[FILE_NAME_LEN];      // user designated output file path.
+  char temp_output_file[FILE_NAME_LEN];
 } session_t;
 
 typedef enum download_state_enum {
@@ -68,7 +66,7 @@ typedef struct recv_window_s {
   packet_t* buffer[MAX_SEQ_NUM+1];  // buffer already received DATA packet.
   size_t max_window_size;           // upper bound on current window size.
   uint32_t next_packet_expected;    // next expected packet's sequence number.
-  struct timeval get_timestamp;    // for detecting GET packet timeout.
+  struct timeval last_datapac_recvd;      // for detecting crashed peers.
 } recv_window_t;
 
 /**
@@ -124,7 +122,7 @@ typedef struct pending_packet_s {
  * Global states shared by all components.
  */
 typedef struct g_state_s {
-  int get_timeout_millsec;              // GET packet timeout threshold.
+  int crash_timeout_millsec;              // GET packet timeout threshold.
   int data_timeout_millsec;             // Estimated timeout threshold.
   int curr_upload_conn_cnt;             // Current upload connection count.
   int curr_download_conn_cnt;           // Current download connection count.
@@ -139,6 +137,7 @@ typedef struct g_state_s {
 
 void g_state_init(g_state_t *g);
 void session_init(session_t *s);
+void session_free(session_t *s);
 void dump_session(session_t *s);
 
 /* Window helper */

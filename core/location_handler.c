@@ -11,15 +11,14 @@
 #include "../utilities/chunk.h"
 #include "../utilities/sha.h"
 
-void ask_peers_who_has(g_state_t *g) {
-  packet_t *who_has_packet = build_who_has_packet(g);
+void ask_peers_who_has(g_state_t *g, session_nlchunk_t *nl_chunks) {
+  packet_t *who_has_packet = build_who_has_packet(nl_chunks);
   broadcast_who_has_packets(g, who_has_packet);
   pkt_free(who_has_packet);
-  g->g_session->state = AWAITING_IHAVE;
   return ;
 }
 
-packet_t* build_who_has_packet(g_state_t *g) {
+packet_t* build_who_has_packet(session_nlchunk_t * nl_chunks) {
   unsigned int packet_len = 0;
   packet_t *who_has_packet = pkt_new();
   who_has_packet->hdr->magic = (uint16_t)htons(15441);    // hardcoded
@@ -31,7 +30,7 @@ packet_t* build_who_has_packet(g_state_t *g) {
 
   session_nlchunk_t *iter;
   uint8_t nlchunk_count = 0;
-  for (iter = g->g_session->non_local_chunks; iter; iter = iter->next) {
+  for (iter = nl_chunks; iter; iter = iter->next) {
     nlchunk_count++;
   }
 
@@ -47,7 +46,7 @@ packet_t* build_who_has_packet(g_state_t *g) {
 
   /* copy chunk hashes */
   char *payload_ptr = (char*)who_has_packet->payload + 4*sizeof(uint8_t);
-  for (iter = g->g_session->non_local_chunks; iter; iter = iter->next) {
+  for (iter = nl_chunks; iter; iter = iter->next) {
     char hash_hex[SHA1_HASH_SIZE];
     ascii2hex(iter->chunk_hash, SHA1_HASH_SIZE*2, (uint8_t*)hash_hex);
     memcpy(payload_ptr, hash_hex, SHA1_HASH_SIZE);
@@ -136,9 +135,16 @@ void process_ihave_packet(g_state_t *g, packet_t* ih_packet, short id) {
     char *chunk_hash = (char *) malloc(SHA1_HASH_SIZE * 2 + 1);
     hex2ascii(chunk_ptr, SHA1_HASH_SIZE, chunk_hash);
     chunk_hash[2 * SHA1_HASH_SIZE] = '\0';
-
-    hashmap_put(g->g_session->nlchunk_map,
-                chunk_hash, (any_t) (intptr_t) id);
+    /* Check if already have located this chunk on other peer.
+     * If so, discard this IHAVE packet. */
+    any_t dummy;
+    if (hashmap_get(g->g_session->nlchunk_located, chunk_hash, &dummy) == MAP_OK) {
+      console_log("Peer %d: Discard IHAVE packet from peer %d for chunk %s",
+                  g->g_config->identity, id, chunk_hash);
+      continue;
+    }
+    dummy = (any_t) 0;
+    hashmap_put(g->g_session->nlchunk_located, chunk_hash, dummy);
 
     console_log("Peer %d: Peer %d has chunk %s",
                 g->g_config->identity, id, chunk_hash);

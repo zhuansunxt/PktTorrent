@@ -15,6 +15,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <sys/time.h>
+#include <unistd.h>
 
 #define DEBUG 1
 #define FILE_NAME_LEN 256
@@ -33,5 +34,7 @@
 
 void console_log(const char *fmt, ...);
 long get_time_diff(struct timeval *t1, struct timeval *t2);
+
+void try_file(const char *path);
 
 #endif //PACTORRENT_COMMONS_H

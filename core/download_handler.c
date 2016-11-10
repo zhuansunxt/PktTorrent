@@ -10,6 +10,10 @@
 #include <time.h>
 #include <unistd.h>
 #include "download_handler.h"
+#include "../utilities/io.h"
+#include "../utilities/bt_parse.h"
+#include "location_handler.h"
+#include <unistd.h>
 
 /**
  * GET packet contains only the chunk hash for the chunk
@@ -66,30 +70,26 @@ packet_t *build_data_packet(unsigned int seq, size_t data_size, char *data) {
 void build_chunk_data_packets(const char *chunk_hash, g_state_t *g, short des_peer) {
   /* Get chunk's offset in master-data-file */
   any_t offset;
-  hashmap_get(g->g_config->chunks->has_chunk_map, chunk_hash, &offset);
+  hashmap_get(g->g_config->chunks->master_chunk_map, chunk_hash, &offset);
   console_log("Building DATA packet for chunk %s with offset %d",
               chunk_hash, (intptr_t) offset);
 
-  int num_of_packet = (CHUNK_SIZE % DATA_PACKET_SIZE) > 0 ?
-                      (CHUNK_SIZE / DATA_PACKET_SIZE)+1 : (CHUNK_SIZE / DATA_PACKET_SIZE);
   int i;
-  FILE *f = fopen(g->g_config->chunk_file, "r");
-  for (i = 0; i < num_of_packet; i++) {
-    unsigned int seq = i+1;
+  FILE *f = fopen(g->g_config->chunks->master_data_file, "r");
+  for (i = 1; i <= MAX_SEQ_NUM; i++) {
     size_t data_size;
-    char data[DATA_PACKET_SIZE];
+    char data[DATA_PACKET_SIZE+1];
 
-    rewind(f);
-    long data_offset = ((intptr_t) offset) * CHUNK_SIZE + i * DATA_PACKET_SIZE;
+    size_t data_offset = ((intptr_t) offset) * CHUNK_SIZE + (i-1) * DATA_PACKET_SIZE;
     fseek(f, data_offset, SEEK_SET);
-    if (i < (num_of_packet-1)) {
+    if (i < MAX_SEQ_NUM) {
       data_size = DATA_PACKET_SIZE;
     } else {
       data_size = CHUNK_SIZE % DATA_PACKET_SIZE;
     }
     fread(data, sizeof(uint8_t), data_size, f);
-    packet_t *data_packet = build_data_packet(seq, data_size, data);
-    g->upload_conn_pool[des_peer]->buffer[seq] = data_packet;
+    packet_t *data_packet = build_data_packet(i, data_size, data);
+    g->upload_conn_pool[des_peer]->buffer[i] = data_packet;
   }
 
   fclose(f);
@@ -126,8 +126,8 @@ packet_t *build_ack_packet(unsigned int ack) {
 void try_send_get_packet(short id, packet_t *get_packet, g_state_t *g) {
   char chunk_hash[HASH_STR_LEN];
   hex2ascii(get_packet->payload, SHA1_HASH_SIZE, chunk_hash);
-  console_log("Peer %d: Trying to send GET packet to peer %d on chunk %s...",
-              g->g_config->identity, id, chunk_hash);
+//  console_log("Peer %d: Trying to send GET packet to peer %d on chunk %s...",
+//              g->g_config->identity, id, chunk_hash);
 
   if (g->download_conn_pool[id] == NULL &&
           g->curr_download_conn_cnt < g->g_config->max_conn) {
@@ -138,17 +138,16 @@ void try_send_get_packet(short id, packet_t *get_packet, g_state_t *g) {
     /* Init downloading connection with corresponding peer */
     init_recv_window(g, id, chunk_hash);
     g->curr_download_conn_cnt++;
-    gettimeofday(&(g->download_conn_pool[id]->get_timestamp), NULL);    // set timestamp of GET.
     console_log("Peer %d: Initiate download session with peer %d for chunk %s",
                 g->g_config->identity, id, chunk_hash);
   } else {
     if (g->download_conn_pool[id] != NULL) {
-      console_log("Peer %d: Existing downloading connection with peer %d. Queue GET packet",
-                  g->g_config->identity, id);
+//      console_log("Peer %d: Existing downloading connection with peer %d. Queue GET packet",
+//                  g->g_config->identity, id);
     }
     if (g->curr_download_conn_cnt == g->g_config->max_conn) {
-      console_log("Peer %d: Maximum downloading connections reached! Queue GET packet",
-                  g->g_config->identity);
+//      console_log("Peer %d: Maximum downloading connections reached! Queue GET packet",
+//                  g->g_config->identity);
     }
     pending_packet_t *pending_GET_packet = build_pending_packet(get_packet, id);
     enqueue(g->pending_get_packets, pending_GET_packet);
@@ -229,6 +228,7 @@ void process_data_packet(g_state_t *g, packet_t *data_packet, short from) {
   }
 
   recv_window_t *window = g->download_conn_pool[from];
+  gettimeofday(&(window->last_datapac_recvd), NULL);      // updates crash-timeout.
 
   if (window->state == IDLE) {
     /* First DATA packet received */
@@ -240,7 +240,7 @@ void process_data_packet(g_state_t *g, packet_t *data_packet, short from) {
   /* Make a local copy of DATA packet. Since argument <data_packet>  will
    * be freed outside this function */
   packet_t* data_packet_copy = pkt_new();
-  memcpy(data_packet_copy, data_packet, sizeof(packet_t));
+  memcpy(data_packet_copy, data_packet, ntohs(data_packet->hdr->plen));
 
   uint32_t seq_number = ntohl(data_packet_copy->hdr->seqn);
   window->buffer[seq_number] = data_packet_copy;
@@ -311,8 +311,8 @@ void process_ack_packet(g_state_t *g, packet_t *ack_packet, short from) {
   uint32_t ack_number = htonl(ack_packet->hdr->ackn);
   send_window_t *window = g->upload_conn_pool[from];
 
-  console_log("Peer %d: Received ACK %u from peer %d",
-              g->g_config->identity, ack_number, from);
+//  console_log("Peer %d: Received ACK %u from peer %d",
+//              g->g_config->identity, ack_number, from);
 
   if (window->dup_ack_map[ack_number] == 0) {
     /* First appearance accumulative ACK.
@@ -425,22 +425,81 @@ void do_upload(g_state_t *g) {
 void do_download(g_state_t *g) {
   int i;
 
-  /* Check for done download connection */
   for (i = 0; i < MAX_PEER_NUM; i++) {
     if (g->download_conn_pool[i] != NULL) {
       recv_window_t * recv_window = g->download_conn_pool[i];
 
+      /* Check for DATA packet timeout */
+      struct timeval curr_time;
+      gettimeofday(&curr_time, NULL);
+      long time_diff = get_time_diff(&curr_time, &(recv_window->last_datapac_recvd));
+      if (time_diff > g->crash_timeout_millsec) {
+        console_log("Peer %d: peer %d probably dies (crash timeout %ld ms)! Should reflooding WHOHAS packet",
+                    g->g_config->identity, i, time_diff);
+
+        /* identify lost chunk. */
+        session_nlchunk_t *lost_chunk = (session_nlchunk_t*)malloc(sizeof(session_nlchunk_t));
+        strcpy(lost_chunk->chunk_hash, recv_window->chunk_hash);
+        lost_chunk->next = NULL;
+        free(lost_chunk);
+
+        /* tear down download connection with crashed peers */
+        hashmap_remove(g->g_session->nlchunk_located, recv_window->chunk_hash);
+        g->curr_download_conn_cnt--;
+        free_recv_window(g, i);
+
+        /* re-flood WHOHAS packet for all peers */
+        ask_peers_who_has(g, lost_chunk);
+      }
+
+
+      /* Check for done download connection */
       if (recv_window->state == DONE) {
         console_log("Peer %d: Closing download connection with peer %d on chunk %s",
                     g->g_config->identity, i, recv_window->chunk_hash);
-        // TODO(xiaotons): write chunk to local storage system.
 
-        /* Get chunk hash and offset in master-data-file */
-//        char *chunk_hash = recv_window->chunk_hash;
-//        any_t offset;
+        /* Upon finish downloading, write all data packet's payload to master_data_file */
+        any_t m_file_offset;
+        hashmap_get(g->g_session->chunk_map, recv_window->chunk_hash, &m_file_offset);
+        console_log("Peer %d: This chunk's offset in output file is: %ld",
+                    g->g_config->identity, (intptr_t)m_file_offset);
 
+        try_file(g->g_session->temp_output_file);
+        FILE *output_f = fopen(g->g_session->temp_output_file, "r+");
+        int packet_idx;
+        for (packet_idx = 1; packet_idx <= MAX_SEQ_NUM; packet_idx++) {
+          size_t data_size;
+          packet_t *data_packet = recv_window->buffer[packet_idx];
+          size_t w_offset = ((intptr_t) m_file_offset) * CHUNK_SIZE + (packet_idx-1) * DATA_PACKET_SIZE;
+          fseek(output_f, w_offset, SEEK_SET);
+          if (packet_idx == MAX_SEQ_NUM) {
+            data_size = CHUNK_SIZE % DATA_PACKET_SIZE;
+          } else {
+            data_size = DATA_PACKET_SIZE;
+          }
+          fwrite(data_packet->payload, sizeof(uint8_t), data_size, output_f);
+        }
+        fclose(output_f);
+
+        // Update global states.
+        hashmap_remove(g->g_session->nlchunk_located, recv_window->chunk_hash);
+        hashmap_remove(g->g_session->nlchunk_map, recv_window->chunk_hash);
         g->curr_download_conn_cnt--;
         free_recv_window(g, i);
+        dump_session(g->g_session);
+
+        if (hashmap_length(g->g_session->nlchunk_map) == 0) {
+          /* All user requested chunks are ready in local storage */
+          assemble_chunks(g->g_config->chunks->master_data_file,
+                          g->g_config->chunks->has_chunk_map,
+                          g->g_session->temp_output_file,
+                          g->g_session->chunk_map);
+
+          rename(g->g_session->temp_output_file, g->g_session->output_file);
+          console_log("[Finish Downloading] File is at %s", g->g_session->output_file);
+          session_free(g->g_session);
+          g->g_session = NULL;
+        }
       }
     }
   }
