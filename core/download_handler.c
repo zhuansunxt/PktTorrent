@@ -333,10 +333,9 @@ void process_ack_packet(g_state_t *g, packet_t *ack_packet, short from) {
 
     window->dup_ack_map[ack_number] = 1;
     window->last_packet_acked = ack_number;
-    window->last_packet_available =
-            MIN(window->last_packet_acked + window->max_window_size, MAX_SEQ_NUM);
 
-    /* Congestion Control */
+    /* Congestion Control
+     * Adjust sliding window size. */
     congctrl_t* cc = &window->cc;
     if (cc->state == SLOW_START) {
       cc->cwnd += 1;
@@ -349,6 +348,9 @@ void process_ack_packet(g_state_t *g, packet_t *ack_packet, short from) {
       window->max_window_size = (size_t) cc->cwnd;
     }
     cc_log(cc);
+
+    window->last_packet_available =
+            MIN(window->last_packet_acked + window->max_window_size, MAX_SEQ_NUM);
 
   } else if (window->dup_ack_map[ack_number] == 1) {
     window->dup_ack_map[ack_number] = 2;
@@ -410,6 +412,7 @@ void do_upload(g_state_t *g) {
         }
       }
 
+      /* Send packets available within window. */
       while (window->last_packet_sent < window->last_packet_available) {
         /* Send packets in range (last_packet_sent, last_packet_available] */
         gettimeofday(&(window->timestamp[window->last_packet_sent+1]), NULL);
@@ -437,14 +440,13 @@ void do_download(g_state_t *g) {
       gettimeofday(&curr_time, NULL);
       long time_diff = get_time_diff(&curr_time, &(recv_window->last_datapac_recvd));
       if (time_diff > g->crash_timeout_millsec) {
-        console_log("Peer %d: peer %d probably dies (crash timeout %ld ms)! Should reflooding WHOHAS packet",
-                    g->g_config->identity, i, time_diff);
+        console_log("Peer %d: peer %d probably dies when downloading %s(crash timeout %ld ms)! Should reflooding WHOHAS packet",
+                    g->g_config->identity, i, recv_window->chunk_hash ,time_diff);
 
         /* identify lost chunk. */
         session_nlchunk_t *lost_chunk = (session_nlchunk_t*)malloc(sizeof(session_nlchunk_t));
         strcpy(lost_chunk->chunk_hash, recv_window->chunk_hash);
         lost_chunk->next = NULL;
-        free(lost_chunk);
 
         /* tear down download connection with crashed peers */
         hashmap_remove(g->g_session->nlchunk_located, recv_window->chunk_hash);
@@ -452,7 +454,10 @@ void do_download(g_state_t *g) {
         free_recv_window(g, i);
 
         /* re-flood WHOHAS packet for all peers */
+        console_log("Peer %d: Reflooding WHOHAS packet for chunk %s",
+                    g->g_config->identity, lost_chunk->chunk_hash);
         ask_peers_who_has(g, lost_chunk);
+        free(lost_chunk);
       }
 
 

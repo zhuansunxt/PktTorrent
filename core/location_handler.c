@@ -96,11 +96,13 @@ void process_who_has_packet(g_state_t *g, packet_t* wh_packet, short id) {
     hex2ascii(chunk_ptr, SHA1_HASH_SIZE, chunk_hash);
     chunk_hash[SHA1_HASH_SIZE*2] = '\0';
 
+    console_log("Peer %d: Checking if I have chunk %s in local for peer %d",
+                g->g_config->identity, chunk_hash, id);
     any_t dummy;
     if (hashmap_get(g->g_config->chunks->has_chunk_map, chunk_hash, &dummy)
             == MAP_OK) {
       ihave_chunk_cnt++;
-      console_log("Peer %d: I have chunk %s in local for peer %d",
+      console_log("Peer %d: I have chunk %s in local for peer %d!",
                   g->g_config->identity, chunk_hash, id);
       memcpy(ihave_payload_ptr, chunk_ptr, SHA1_HASH_SIZE);
       ihave_payload_ptr += SHA1_HASH_SIZE;
