@@ -406,6 +406,7 @@ void do_download(g_state_t *g) {
         session_nlchunk_t *lost_chunk = (session_nlchunk_t*)malloc(sizeof(session_nlchunk_t));
         strcpy(lost_chunk->chunk_hash, recv_window->chunk_hash);
         lost_chunk->next = NULL;
+        free(lost_chunk);
 
         /* tear down download connection with crashed peers */
         hashmap_remove(g->g_session->nlchunk_located, recv_window->chunk_hash);

@@ -135,7 +135,7 @@ void process_ihave_packet(g_state_t *g, packet_t* ih_packet, short id) {
     char *chunk_hash = (char *) malloc(SHA1_HASH_SIZE * 2 + 1);
     hex2ascii(chunk_ptr, SHA1_HASH_SIZE, chunk_hash);
     chunk_hash[2 * SHA1_HASH_SIZE] = '\0';
-    /* Check if there's existing download connection for this chunk.
+    /* Check if already have located this chunk on other peer.
      * If so, discard this IHAVE packet. */
     any_t dummy;
     if (hashmap_get(g->g_session->nlchunk_located, chunk_hash, &dummy) == MAP_OK) {
