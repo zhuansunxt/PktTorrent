@@ -13,7 +13,7 @@
 #include "global.h"
 
 void g_state_init(g_state_t *g) {
-  g->crash_timeout_millsec = 10000;     // TODO: reason about this value.
+  g->crash_timeout_millsec = 6000;    // TODO: reason about this value.
   g->data_timeout_millsec = 3000;     // TODO: do RTT estimation.
   g->curr_upload_conn_cnt = 0;
   g->curr_download_conn_cnt = 0;
