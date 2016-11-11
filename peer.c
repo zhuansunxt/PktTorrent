@@ -57,15 +57,16 @@ void process_inbound_udp(g_state_t *g_state) {
   short id;
   bt_peer_t *p;
   for (p = g_state->g_config->peers; p; p = p->next) {
-    if ((inet_ntoa(from.sin_addr) == inet_ntoa(p->addr.sin_addr) &&
-         ntohs(from.sin_port) == ntohs(p->addr.sin_port))) {
+    if (ntohs(from.sin_port) == ntohs(p->addr.sin_port)) {
       id = p->id;
       break;
     }
   }
 
   if (p == NULL) {
-    fprintf(stderr, "Peer %d: Receive data from unknown peer. Drop it.", g_state->g_config->identity);
+    char *remote_addr = (char*)inet_ntop(from.sin_family, &(from.sin_addr), buf, fromlen);
+    fprintf(stderr, "Peer %d: Receive data from unknown peer (%s:%d). Drop it."
+            , g_state->g_config->identity, remote_addr, ntohs(from.sin_port));
     return;
   }
 
