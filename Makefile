@@ -13,7 +13,7 @@ MODULES := lib       \
 CFLAGS += -I.
 CFLAGS += $(foreach MODULE,$(MODULES),-I$(MODULE))
 
-BINS           := peer client server make_chunks
+BINS           := peer
 #TESTBINS       := test_debug test_input_buffer  # not automatic
 UTESTBINS      := test_hashmap     \
 									test_io          \
