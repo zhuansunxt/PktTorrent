@@ -3,8 +3,8 @@
 #                                                                              #
 # Description: This file describes testing methods for this project            #
 #                                                                              #
-# Authors: Xiaotong Sun (xiaotons@cs.cmu.edu)																	 #	
-#					 Longqi Cai (longqic@cs.cmu.edu)		                                 #
+# Authors: Xiaotong Sun (xiaotons@cs.cmu.edu)                                  #   
+#                Longqi Cai (longqic@cs.cmu.edu)                               #
 #                                                                              #
 ################################################################################
 
@@ -20,8 +20,8 @@ Unit tests are written for different modules. All unit tests can be found under
 the utests/ directories.
 
 - test_hashmap: testing of the hashmap data structure. The hashmap library is
-								from other open source projects, and thorough unit tests are 
-								built to test its reliability.
+                from other open source projects, and thorough unit tests are 
+                built to test its reliability.
 
 - test_queue: testing of the queue data structure, which is written by our own.
 
@@ -30,7 +30,7 @@ the utests/ directories.
 - test_io: test driver for all io functions.
 
 - test_diff_time: testing for the helper function that enable us to check
-									timeouts in the system.
+                  timeouts in the system.
  
 Integration Test
 --------------------------------------------------------------------------------

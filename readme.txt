@@ -2,10 +2,10 @@
 # README                                                                       #
 #                                                                              #
 # Description: This file serves as a README and documentation for a P2P file   #
-#							 transfer system with congestion control.												 #
+#               transfer system with congestion control.                       #
 #                                                                              #
-# Authors: Xiaotong Sun (xiaotons@cs.cmu.edu)																	 #
-#					 Longqi Cai (longqic@cs.cmu.edu)		                                 #
+# Authors: Xiaotong Sun (xiaotons@cs.cmu.edu)                                  #
+#           Longqi Cai (longqic@cs.cmu.edu)                                    #
 #                                                                              #
 ################################################################################
 
@@ -22,20 +22,20 @@
 
 Documentations:
 
-		readme.txt  				- Design documentation
-		tests.txt						- Test documentation
-		vulnerabilities.txt - Documentations on potential vulnerability of the system
+    readme.txt          - Design documentation
+    tests.txt            - Test documentation
+    vulnerabilities.txt - Documentations on potential vulnerability of the system
 
 Source code:
-		
-		core/*.[hc]					- Core implementation, including upload/download and peer
-													communication logic
-		debug/*.[hc]	  		- Debug utilities.
-		lib/*.[hc]					- Data stucture library from open-source project.
-		packet/*.[hc]				- Packet structure definition.
-		utilities/*.[hc]		- All utilities and helpers that used across project.
-		utests/*.[hc]				- Unit tests.
-		peer.c 							- Main entrance of a single peer.
+    
+    core/*.[hc]          - Core implementation, including upload/download and peer
+                          communication logic
+    debug/*.[hc]        - Debug utilities.
+    lib/*.[hc]          - Data stucture library from open-source project.
+    packet/*.[hc]        - Packet structure definition.
+    utilities/*.[hc]    - All utilities and helpers that used across project.
+    utests/*.[hc]        - Unit tests.
+    peer.c               - Main entrance of a single peer.
 
 
 [DAI-4] Design and Implementation
@@ -61,35 +61,35 @@ downloaded, a peer will tell the user the final output file's location.
 
 To make this whole process clear, the below diagram should help you to understand:
 
-				 chunks
-User ------------> Peer 											Other peers in the system 												
-										|																			|
-										| 																		|
-					Check non-local chunks 													|
-										|																			|
-										| ----------------------------------> |		
-										|        Broadcast WHOHAS packets			|
-										|																			|
-										| <-----------------------------------| 
-										|        Receive IHAVE packets				|
-										|																			|
-										| ----------------------------------> | 
-										| 			   Sent GET packets						|
-										| 																		|
-										| <-----------------------------------| 
-										|        Receive DATA packet   				|
-										| ----------------------------------> | 
-										| 			   Reply ACK packets					|
-										| <-----------------------------------| 
-										|        Receive DATA packet   				|
-										| ----------------------------------> | 
-										| 			   Reply ACK packets					|
-										|                                     |
-										|              ........               |
-										|																			|
-				Receive all chunks requested					  Close upload connection
-						Close download connection
-										|
+         chunks
+User ------------> Peer                       Other peers in the system                         
+                    |                                      |
+                    |                                      |
+          Check non-local chunks                           |
+                    |                                      |
+                    | ---------------------------------->  |    
+                    |        Broadcast WHOHAS packets      |
+                    |                                      |
+                    | <----------------------------------- | 
+                    |        Receive IHAVE packets         |
+                    |                                      |
+                    | ---------------------------------->  | 
+                    |          Sent GET packets            |
+                    |                                      |
+                    | <----------------------------------- | 
+                    |        Receive DATA packet           |
+                    | ---------------------------------->  | 
+                    |          Reply ACK packets           |
+                    | <----------------------------------- | 
+                    |        Receive DATA packet           |
+                    | ---------------------------------->  | 
+                    |          Reply ACK packets           |
+                    |                                      |
+                    |              ........                |
+                    |                                      |
+        Receive all chunks requested            Close upload connection
+            Close download connection
+                    |
 User <------------  |
        output file
 
@@ -98,16 +98,16 @@ User <------------  |
 For a downloader in this system, a download connecton will be constructed for every 
 chunk's downloading, which can be represented by the below pseudo code.
 
-							*************************************************
-							* typedef struct recv_window_s {								*
-							*  char chunk_hash[HASH_STR_LEN];								*
-							*  download_state state;												*
-							*  packet_t* buffer[MAX_DATAPKT_FOR_CHUNK];			*
-							*  uint32_t next_packet_expected;								*
-							*  struct timeval last_datapac_recvd;						*
-							*  unsigned accumulate_bytes;										*
-							* } recv_window_t;															*
-							*************************************************
+              *************************************************
+              * typedef struct recv_window_s {                *
+              *  char chunk_hash[HASH_STR_LEN];               *
+              *  download_state state;                        *
+              *  packet_t* buffer[MAX_DATAPKT_FOR_CHUNK];     *
+              *  uint32_t next_packet_expected;               *
+              *  struct timeval last_datapac_recvd;           *
+              *  unsigned accumulate_bytes;                   *
+              * } recv_window_t;                              *
+              *************************************************
 
 When it receives a DATA packet, it will check whether its sequence number is larger,
 equal or smaller than the `next_packet_expected` number. If the sequence number is
@@ -124,18 +124,18 @@ For an uploader in the system, similarly an upload connection will be constructe
 for a specific downloader, which can be represented as below.
 
 *******************************************************************************
-* typedef struct send_window_s {																							*
-*  packet_t *buffer[MAX_SEQ_NUM+1];  // buffer all DATA packet to be sent.		*
-*  size_t max_window_size;          																					*
-*																																							*
-*  uint32_t last_packet_acked;       // last packet that get ACKed.						*
-*  uint32_t last_packet_sent;        // last packet that is sent out.					*
-*  uint32_t last_packet_available;   // serves as window boundary.						*
-*																																							*
-*  uint8_t dup_ack_map[MAX_SEQ_NUM+1];   		// keep track of duplicate ACK.		*
-*  struct timeval timestamp[MAX_SEQ_NUM+1]; // Timer for each DATA packet.		*
-*  congctrl_t cc;                    				// congestion control.						*									
-* } send_window_t;																														*
+* typedef struct send_window_s {                                              *
+*  packet_t *buffer[MAX_SEQ_NUM+1];  // buffer all DATA packet to be sent.    *
+*  size_t max_window_size;                                                    *
+*                                                                             *
+*  uint32_t last_packet_acked;       // last packet that get ACKed.           *
+*  uint32_t last_packet_sent;        // last packet that is sent out.         *
+*  uint32_t last_packet_available;   // serves as window boundary.            *
+*                                                                             *
+*  uint8_t dup_ack_map[MAX_SEQ_NUM+1];       // keep track of duplicate ACK.  *
+*  struct timeval timestamp[MAX_SEQ_NUM+1]; // Timer for each DATA packet.    *
+*  congctrl_t cc;                            // congestion control.           *                  
+* } send_window_t;                                                            *
 *******************************************************************************
 
 The implementation for an upload connecton is more complex, since it involves
@@ -164,11 +164,11 @@ Two events' occurence will cause the congestion avoidance state to be transitted
 back to slow start state: DATA packet timeout and receiving duplicate ACK packet.
 
 
-													 ssthresh reached
-					**************  ------------------> ************************
-					* Slow Start *											* Congestion Avoidance *
-					************** <------------------- ************************
-													timeout / dup ACK
+                           ssthresh reached
+          **************  ------------------> ************************
+          * Slow Start *                      * Congestion Avoidance *
+          ************** <------------------- ************************
+                          timeout / dup ACK
 
 The `cc` member in an upload connecton acts as a controller
 for congeston control during the upload process. To verify the effect, one could check
