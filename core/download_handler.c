@@ -482,19 +482,15 @@ void do_download(g_state_t *g) {
         try_file(g->g_session->temp_output_file);
         FILE *output_f = fopen(g->g_session->temp_output_file, "r+");
         int packet_idx;
+        size_t w_offset = ((intptr_t) m_file_offset) * CHUNK_SIZE;
         for (packet_idx = 1; packet_idx < MAX_DATAPKT_FOR_CHUNK; packet_idx++) {
           if (recv_window->buffer[packet_idx] == NULL) break;   // no more data packets.
 
-          size_t data_size;
           packet_t *data_packet = recv_window->buffer[packet_idx];
-          size_t w_offset = ((intptr_t) m_file_offset) * CHUNK_SIZE + (packet_idx-1) * DATA_PACKET_SIZE;
+          size_t data_size = ntohs(data_packet->hdr->plen) - HDRSZ;
           fseek(output_f, w_offset, SEEK_SET);
-          if (packet_idx == MAX_SEQ_NUM) {
-            data_size = CHUNK_SIZE % DATA_PACKET_SIZE;
-          } else {
-            data_size = DATA_PACKET_SIZE;
-          }
           fwrite(data_packet->payload, sizeof(uint8_t), data_size, output_f);
+          w_offset +=data_size;
         }
         fclose(output_f);
 
