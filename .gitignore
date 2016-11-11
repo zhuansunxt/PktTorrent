@@ -20,3 +20,5 @@ make_chunks
 server
 client
 example/*
+output
+CMakeLists.txt

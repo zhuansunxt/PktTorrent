@@ -63,10 +63,13 @@ typedef enum download_state_enum {
 typedef struct recv_window_s {
   char chunk_hash[HASH_STR_LEN];    // chunk that should be download.
   download_state state;             // downloading connection state.
-  packet_t* buffer[MAX_SEQ_NUM+1];  // buffer already received DATA packet.
+  packet_t* buffer[MAX_DATAPKT_FOR_CHUNK];  // buffer already received DATA packet.
   size_t max_window_size;           // upper bound on current window size.
   uint32_t next_packet_expected;    // next expected packet's sequence number.
   struct timeval last_datapac_recvd;      // for detecting crashed peers.
+
+  // change for passing test.
+  unsigned accumulate_bytes;
 } recv_window_t;
 
 /**

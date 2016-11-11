@@ -80,8 +80,11 @@ void init_recv_window(g_state_t *g, short peer_id, const char *chunk) {
   recv_window->next_packet_expected = 1;
   gettimeofday(&(recv_window->last_datapac_recvd), NULL);     // init timer for data packet.
   int i = 0;
-  for (; i <= MAX_SEQ_NUM; i++)
+  for (; i <= MAX_DATAPKT_FOR_CHUNK; i++)
     recv_window->buffer[i] = NULL;
+
+  // change for passing test
+  recv_window->accumulate_bytes = 0;
 
   g->download_conn_pool[peer_id] = recv_window;
 }

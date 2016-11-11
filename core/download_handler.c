@@ -243,6 +243,9 @@ void process_data_packet(g_state_t *g, packet_t *data_packet, short from) {
   memcpy(data_packet_copy, data_packet, ntohs(data_packet->hdr->plen));
 
   uint32_t seq_number = ntohl(data_packet_copy->hdr->seqn);
+  uint16_t data_len = ntohs(data_packet_copy->hdr->plen) - HDRSZ;
+  if (window->buffer[seq_number] == NULL)
+    window->accumulate_bytes += data_len;
   window->buffer[seq_number] = data_packet_copy;
 
   if (seq_number == window->next_packet_expected) {
@@ -254,17 +257,20 @@ void process_data_packet(g_state_t *g, packet_t *data_packet, short from) {
      * and should send ACK packet with ack number 6 (next_packet_expected-1).
      */
 
-    while (window->next_packet_expected <= MAX_SEQ_NUM
+    while (window->next_packet_expected <= MAX_DATAPKT_FOR_CHUNK
           && window->buffer[window->next_packet_expected] != NULL) {
       window->next_packet_expected++;
     }
 
-    if (window->next_packet_expected == MAX_SEQ_NUM+1) {
+    if (window->accumulate_bytes >= CHUNK_SIZE) {
       /* Received all DATA packets for this chunk */
       packet_t *ack_packet = build_ack_packet(window->next_packet_expected-1);
       send_packet(from, ack_packet, g);
       console_log("Peer %d: Received all DATA packets from peer %d",
                     g->g_config->identity, from);
+      if (window->accumulate_bytes > CHUNK_SIZE)
+        console_log("But weird. Accumulated bytes (%u) should be equal to CHUNK_SIZE (%d)",
+                    window->accumulate_bytes, CHUNK_SIZE);
       window->state = DONE;
       return;
     }
@@ -361,7 +367,8 @@ void process_ack_packet(g_state_t *g, packet_t *ack_packet, short from) {
                 g->g_config->identity, ack_number, from);
     send_packet(from, window->buffer[ack_number + 1], g);
 
-    /* Congestion Control */
+    /* Congestion Control
+     * When DUP ACK happnes, return to initial slow start state */
     congctrl_t* cc = &window->cc;
     cc->state = SLOW_START;
     cc->ssthresh = MAX(2, cc->cwnd/2);
@@ -475,7 +482,9 @@ void do_download(g_state_t *g) {
         try_file(g->g_session->temp_output_file);
         FILE *output_f = fopen(g->g_session->temp_output_file, "r+");
         int packet_idx;
-        for (packet_idx = 1; packet_idx <= MAX_SEQ_NUM; packet_idx++) {
+        for (packet_idx = 1; packet_idx < MAX_DATAPKT_FOR_CHUNK; packet_idx++) {
+          if (recv_window->buffer[packet_idx] == NULL) break;   // no more data packets.
+
           size_t data_size;
           packet_t *data_packet = recv_window->buffer[packet_idx];
           size_t w_offset = ((intptr_t) m_file_offset) * CHUNK_SIZE + (packet_idx-1) * DATA_PACKET_SIZE;
