@@ -1,0 +1,77 @@
+################################################################################
+# TESTING                                                                      #
+#                                                                              #
+# Description: This file describes testing methods for this project            #
+#                                                                              #
+# Authors: Xiaotong Sun (xiaotons@cs.cmu.edu)																	 #	
+#					 Longqi Cai (longqic@cs.cmu.edu)		                                 #
+#                                                                              #
+################################################################################
+
+
+The testing for our implementation of this project mainly contains two parts:
+
+- Unit tests
+- Integration tests
+
+Unit Test
+--------------------------------------------------------------------------------
+Unit tests are written for different modules. All unit tests can be found under
+the utests/ directories.
+
+- test_hashmap: testing of the hashmap data structure. The hashmap library is
+								from other open source projects, and thorough unit tests are 
+								built to test its reliability.
+
+- test_queue: testing of the queue data structure, which is written by our own.
+
+- test_packet: testing of packet structure.
+
+- test_io: test driver for all io functions.
+
+- test_diff_time: testing for the helper function that enable us to check
+									timeouts in the system.
+ 
+Integration Test
+--------------------------------------------------------------------------------
+Before each git commit on the codebase of this project, 4 groups of
+integration tests must be done to ensure the correctness of the system.
+
+- Integrations test 1: Two-peers transfer
+
+Only two peers are active, and let one peer download 2 file chunks from the other.
+
+- Integrations test 2: Parallel downloading
+
+Three peers are active, and let peer-1 downloads 1 chunk each from peer-2 and peer-3.
+
+- Integration test 3: Crash recovery
+
+Three peers are active, and let peer-1 downloads 2 chunks from peer-2. During the
+download, kill peer-2 and check whether peer-1 is able to detect this and
+re-download the 2 chunks from peer-3.
+
+- Integration test 4: Bad network environment
+
+Modify the perl script and topology file for spiffy network environment. The goal
+is to simulate a network that could potentially drop packets and has a relatively
+long delay. The test process is the same as the integration test 1, and see if
+peer-1 could fully download 2 file chunks from peer-2 in this more harsh network
+environment.
+
+We have not make these integration test fully automatic. Instead, we manually
+run multiple peers and observe the behavior of these peers. The advantage of this
+approach is that we can detect abnormal behaviors quite easily by reading the
+console log. These integration tests have helped us identify potential and existing
+bugs in a quite early stage during the development.
+
+
+
+
+
+
+
+
+
+
+
