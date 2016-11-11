@@ -1,0 +1,35 @@
+################################################################################
+# Vulnerability Analysis                                                       #
+#                                                                              #
+# Description: This file describes vulnerability analysis for this project     #
+#                                                                              #
+# Authors: Xiaotong Sun (xiaotons@cs.cmu.edu)																	 #	
+#					 Longqi Cai (longqic@cs.cmu.edu)		                                 #
+#                                                                              #
+################################################################################
+
+Vulnerabilities
+-------------------------------------------------------------------------------
+
+- Concurrency Constraits
+
+Currently a peer's concurrency is constrained mainly by the serialization of chunk
+transferring with a fixed peer. And we do not support parallelizing the transfer
+between two peers. In a more ideal implementation, the file transferring should
+be fully parallelized.
+
+- Memory Consumption
+
+The current approach to storing file chunk's data is caching it in memory. Upon
+finish downloading, system will write these in-memory data to the designated file.
+This may lead to large memory consumption on two cases: 1) highly concurrent 
+environment 2) larger file chunk size. 
+
+- Adaptivity To More Complex Scenario
+
+We made an assumption that each non-local chunks of any given peer must reside on
+other existing and active peers, even when some peer crashes. This is not a very
+reasonable assumption in fault tolerance handling. More robust implementation
+should consider the case where some chunk can not be retrieved given some peer
+failures, and should return a fail result to the user.
+
